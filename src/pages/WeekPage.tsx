@@ -13,7 +13,7 @@ const PHASE_HELP = {
 };
 
 export function WeekPage({ number }: { number: number }) {
-  const { league, update } = useLeague();
+  const { league, update, canEdit } = useLeague();
   const schedule = league.schedule;
   if (!schedule) return <NoSchedule />;
   const week = schedule.weeks.find((w) => w.number === number);
@@ -49,29 +49,38 @@ export function WeekPage({ number }: { number: number }) {
 
       <div className="card week-meta">
         <div className="form-row">
-          <label className="field">
-            <span>Date</span>
-            <input type="date" value={week.date} onChange={(e) => setDate(e.target.value)} />
-          </label>
-          <button className="btn" onClick={pushBack}>
-            Push back a week
-          </button>
+          {canEdit ? (
+            <>
+              <label className="field">
+                <span>Date</span>
+                <input type="date" value={week.date} onChange={(e) => setDate(e.target.value)} />
+              </label>
+              <button className="btn" onClick={pushBack}>
+                Push back a week
+              </button>
+            </>
+          ) : (
+            <h2 className="week-date-title">{formatDate(week.date)}</h2>
+          )}
           <div className="meta-info">
             <PhaseBadge phase={week.phase} />
             <Progress {...progress(week.games)} />
           </div>
         </div>
         <p className="muted small">
-          {formatDate(week.date)} · {PHASE_HELP[week.phase]}
+          {canEdit && `${formatDate(week.date)} · `}
+          {PHASE_HELP[week.phase]}
         </p>
       </div>
 
       {week.games.length === 0 ? (
         <div className="card empty">
           <p>Playoff matchups are set from the final regular-season standings.</p>
-          <a className="btn primary" href="#/playoffs">
-            Go to Playoffs
-          </a>
+          {canEdit && (
+            <a className="btn primary" href="#/playoffs">
+              Go to Playoffs
+            </a>
+          )}
         </div>
       ) : (
         groupByRound(week.games).map(([round, games]) => (
@@ -90,7 +99,7 @@ export function WeekPage({ number }: { number: number }) {
 }
 
 function GameCard({ game, weekIndex }: { game: Game; weekIndex: number }) {
-  const { update } = useLeague();
+  const { update, canEdit } = useLeague();
   const o = outcome(game);
 
   const setScore = (side: 0 | 1, raw: string) =>
@@ -120,15 +129,19 @@ function GameCard({ game, weekIndex }: { game: Game; weekIndex: number }) {
                 <Name key={id} id={id} />
               ))}
             </div>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              className="score-input mono"
-              value={game.score[side] ?? ''}
-              onChange={(e) => setScore(side, e.target.value)}
-              aria-label={ids.length > 1 ? 'Team score' : 'Score'}
-            />
+            {canEdit ? (
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="score-input mono"
+                value={game.score[side] ?? ''}
+                onChange={(e) => setScore(side, e.target.value)}
+                aria-label={ids.length > 1 ? 'Team score' : 'Score'}
+              />
+            ) : (
+              <span className="score-value mono">{game.score[side] ?? '–'}</span>
+            )}
             <div className="score-result">
               {won && <span className="badge win">W</span>}
               {lost && <span className="badge loss">L</span>}

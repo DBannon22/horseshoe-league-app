@@ -1,39 +1,151 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { loadLeague, saveLeague } from './lib/storage';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { User } from 'firebase/auth';
+import { cloud } from './lib/cloud';
+import { defaultLeague, loadLeague, migrateLeague, saveLeague } from './lib/storage';
 import type { League, Player } from './lib/types';
+
+/** loading → first cloud read pending; missing → cloud has no league yet. */
+export type LeagueStatus = 'loading' | 'ready' | 'missing' | 'error';
+export type SaveState = 'saved' | 'saving' | 'error';
 
 interface LeagueContextValue {
   league: League;
+  status: LeagueStatus;
+  /** True when connected to Firebase; false in local (single-browser) mode. */
+  cloudEnabled: boolean;
+  /** Whether the current visitor may change anything. */
+  canEdit: boolean;
+  user: User | null;
+  isAdmin: boolean;
+  authReady: boolean;
+  saveState: SaveState;
+  error: string;
   /** Apply a mutation to a fresh copy of the league. */
   update: (mutate: (draft: League) => void) => void;
   replace: (league: League) => void;
   player: (id: string) => Player;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const LeagueContext = createContext<LeagueContextValue | null>(null);
 
+const SAVE_DELAY_MS = 600;
+
 export function LeagueProvider({ children }: { children: ReactNode }) {
-  const [league, setLeague] = useState<League>(loadLeague);
+  const [league, setLeague] = useState<League | null>(() => (cloud ? null : loadLeague()));
+  const [status, setStatus] = useState<LeagueStatus>(cloud ? 'loading' : 'ready');
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authReady, setAuthReady] = useState(!cloud);
+  const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [error, setError] = useState('');
 
-  useEffect(() => saveLeague(league), [league]);
+  const leagueRef = useRef(league);
+  // A debounced cloud write that hasn't gone out yet; incoming snapshots are
+  // ignored meanwhile so they can't overwrite what the admin is typing.
+  const pending = useRef<number | null>(null);
 
-  const update = useCallback((mutate: (draft: League) => void) => {
-    setLeague((prev) => {
-      const next = structuredClone(prev);
-      mutate(next);
-      return next;
+  useEffect(() => {
+    if (!cloud && league) saveLeague(league);
+  }, [league]);
+
+  useEffect(() => {
+    if (!cloud) return;
+    const stopLeague = cloud.watchLeague(
+      (remote) => {
+        if (pending.current !== null) return;
+        const next = remote ? migrateLeague(remote) : null;
+        leagueRef.current = next;
+        setLeague(next);
+        setStatus(next ? 'ready' : 'missing');
+      },
+      (e) => {
+        setStatus('error');
+        setError(e.message);
+      },
+    );
+    const stopAuth = cloud.watchAuth(async (u) => {
+      setUser(u);
+      setIsAdmin(u ? await cloud!.isAdmin(u.uid) : false);
+      setAuthReady(true);
     });
+    const warnUnsaved = (e: BeforeUnloadEvent) => {
+      if (pending.current !== null) e.preventDefault();
+    };
+    window.addEventListener('beforeunload', warnUnsaved);
+    return () => {
+      stopLeague();
+      stopAuth();
+      window.removeEventListener('beforeunload', warnUnsaved);
+    };
   }, []);
 
+  const commit = useCallback((next: League) => {
+    leagueRef.current = next;
+    setLeague(next);
+    setStatus('ready');
+    if (!cloud) return;
+    setSaveState('saving');
+    if (pending.current !== null) window.clearTimeout(pending.current);
+    const timer = window.setTimeout(async () => {
+      try {
+        await cloud!.saveLeague(leagueRef.current!);
+        setSaveState('saved');
+        setError('');
+      } catch (e) {
+        setSaveState('error');
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (pending.current === timer) pending.current = null;
+      }
+    }, SAVE_DELAY_MS);
+    pending.current = timer;
+  }, []);
+
+  const update = useCallback(
+    (mutate: (draft: League) => void) => {
+      const next = structuredClone(leagueRef.current ?? defaultLeague());
+      mutate(next);
+      commit(next);
+    },
+    [commit],
+  );
+
   const value = useMemo((): LeagueContextValue => {
-    const byId = new Map(league.players.map((p) => [p.id, p]));
+    const current = league ?? defaultLeague();
+    const byId = new Map(current.players.map((p) => [p.id, p]));
     return {
-      league,
+      league: current,
+      status,
+      cloudEnabled: !!cloud,
+      canEdit: !cloud || isAdmin,
+      user,
+      isAdmin,
+      authReady,
+      saveState,
+      error,
       update,
-      replace: setLeague,
+      replace: commit,
       player: (id) => byId.get(id) ?? { id, name: id, side: 'A', slot: 0 },
+      signIn: async (email, password) => {
+        if (!cloud) throw new Error('Login is not set up.');
+        await cloud.signIn(email, password);
+      },
+      signOut: async () => {
+        await cloud?.signOut();
+      },
     };
-  }, [league, update]);
+  }, [league, status, user, isAdmin, authReady, saveState, error, update, commit]);
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>;
 }

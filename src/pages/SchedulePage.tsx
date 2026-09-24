@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLeague } from '../state';
-import { Name, PageHeader, PhaseBadge, Progress } from '../components';
+import { Name, NoSchedule, PageHeader, PhaseBadge, Progress } from '../components';
 import { generateInWorker } from '../lib/generate';
 import { randomSeed } from '../lib/rng';
 import { formatDate, todayIso } from '../lib/dates';
@@ -9,7 +9,7 @@ import { hasScores } from '../lib/playoffs';
 import { isRegular, type Game, type Week } from '../lib/types';
 
 export function SchedulePage() {
-  const { league } = useLeague();
+  const { league, canEdit } = useLeague();
   const schedule = league.schedule;
   const [focus, setFocus] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(() => {
@@ -34,7 +34,7 @@ export function SchedulePage() {
     return (
       <section>
         <PageHeader title="Schedule" />
-        <Generator />
+        {canEdit ? <Generator /> : <NoSchedule />}
       </section>
     );
 
@@ -91,10 +91,12 @@ export function SchedulePage() {
         ))}
       </div>
 
-      <details className="card regenerate no-print">
-        <summary>Regenerate or change start date</summary>
-        <Generator />
-      </details>
+      {canEdit && (
+        <details className="card regenerate no-print">
+          <summary>Regenerate or change start date</summary>
+          <Generator />
+        </details>
+      )}
     </section>
   );
 }
@@ -191,6 +193,7 @@ function WeekCard({
   onToggle: () => void;
   focus: string;
 }) {
+  const { canEdit } = useLeague();
   const p = progress(week.games);
   return (
     <article className={`card week${open ? ' open' : ''}`}>
@@ -205,7 +208,7 @@ function WeekCard({
         <PhaseBadge phase={week.phase} />
         <Progress {...p} />
         <a className="btn small" href={`#/week/${week.number}`}>
-          {isRegular(week.phase) || week.games.length ? 'Enter scores' : 'View'}
+          {canEdit && (isRegular(week.phase) || week.games.length) ? 'Enter scores' : 'View'}
         </a>
       </header>
       {open && <WeekMatchups week={week} focus={focus} />}
@@ -218,7 +221,7 @@ export function WeekMatchups({ week, focus }: { week: Week; focus: string }) {
   if (week.games.length === 0)
     return (
       <p className="muted week-body">
-        Set after the regular season — seed it from the <a href="#/playoffs">Playoffs</a> page.
+        Matchups are set from the final regular-season standings — see <a href="#/playoffs">Playoffs</a>.
       </p>
     );
   return (

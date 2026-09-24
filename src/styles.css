@@ -631,3 +631,69 @@ th {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* ---------- account / viewer mode ---------- */
+.account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.account-link {
+  color: var(--white);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.account-link:hover,
+.account-link.active {
+  border-color: var(--orange);
+}
+.save-state {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.save-state.error {
+  color: var(--yellow);
+  opacity: 1;
+  font-weight: 600;
+}
+.banner {
+  padding: 10px 16px;
+  text-align: center;
+  font-weight: 500;
+}
+.error-banner {
+  background: var(--error);
+  color: var(--white);
+}
+.narrow {
+  max-width: 480px;
+  margin: 0 auto;
+}
+.login .btn {
+  justify-self: start;
+}
+.form-row.center {
+  justify-content: center;
+}
+.score-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  min-width: 56px;
+  text-align: right;
+}
+.week-date-title {
+  margin: 0;
+  padding-bottom: 6px;
+}
+.roster-name {
+  padding: 8px 0;
+}
+.login p {
+  margin: 0;
+}

@@ -40,11 +40,29 @@ export function PageHeader({ title, children }: { title: string; children?: Reac
 }
 
 export function NoSchedule() {
+  const { canEdit } = useLeague();
   return (
     <div className="card empty">
-      <p>No schedule yet.</p>
-      <a className="btn primary" href="#/schedule">
-        Generate a schedule
+      {canEdit ? (
+        <>
+          <p>No schedule yet.</p>
+          <a className="btn primary" href="#/schedule">
+            Generate a schedule
+          </a>
+        </>
+      ) : (
+        <p>The schedule hasn’t been posted yet. Check back soon.</p>
+      )}
+    </div>
+  );
+}
+
+export function AdminOnly() {
+  return (
+    <div className="card empty">
+      <p>Only the league admin can open this page.</p>
+      <a className="btn primary" href="#/login">
+        Admin login
       </a>
     </div>
   );

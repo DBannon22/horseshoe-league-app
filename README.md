@@ -3,17 +3,63 @@
 A web app for running a 16-player horseshoe league (8 A-side, 8 B-side players):
 roster, a 16-week schedule, score entry, standings and playoffs.
 
+Live site: https://dbannon22.github.io/horseshoe-league-app/
+
 ## Running it
 
 ```sh
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # static site in dist/ — host anywhere (it is fully client-side)
+npm run build      # static site in dist/
 npm test           # scheduler / standings / playoff tests
 ```
 
-Data is saved in the browser's local storage. Use **Settings → Export backup** to
-keep a copy or move the league to another computer.
+Pushing to `main` runs the tests and redeploys GitHub Pages automatically.
+
+To develop against local Firebase emulators instead of the real project, run
+`firebase emulators:start --only auth,firestore --project demo-horseshoe`, then
+`VITE_FIREBASE_EMULATOR=true npm run dev`.
+
+## Admin login
+
+With Firebase connected (see setup below), the league is stored online:
+
+- **Everyone** with the link can view the schedule, scores, standings, playoffs and
+  roster, and sees updates live.
+- **Admins** sign in with **Admin login** (top right) to enter scores, generate or change
+  the schedule, edit the roster, seed the playoffs, and use Settings. This is enforced
+  by `firestore.rules` on the server, not just by hiding buttons.
+
+Until `src/firebaseConfig.ts` is filled in, the app runs in **local mode**: there is no
+login, and data is kept only in the browser that entered it.
+
+### Admin login setup (one time, about 10 minutes)
+
+1. Go to https://console.firebase.google.com, click **Create a project**, and name it
+   (for example `horseshoe-league`). Google Analytics can be turned off.
+2. **Build → Authentication → Get started.** Under **Sign-in method**, enable
+   **Email/Password**.
+   - **Users → Add user**: enter the admin's email and a password. Copy the
+     **User UID** shown in the list.
+   - **Settings → Authorized domains → Add domain**: `dbannon22.github.io`
+   - Recommended: **Settings → User actions**, untick **Enable create (sign-up)** so
+     only you can add accounts.
+3. **Build → Firestore Database → Create database** (production mode, any nearby
+   location).
+   - **Rules** tab: replace everything with the contents of `firestore.rules` and click
+     **Publish**.
+   - **Data** tab: **Start collection** named `admins`. Use the admin's **User UID** as
+     the *Document ID*, add any field (for example `name` = `League admin`), and save.
+     Repeat for each extra admin.
+4. **Project settings (gear icon) → General → Your apps → Web (`</>`)**. Register the
+   app (Firebase Hosting isn't needed) and copy the `firebaseConfig` values into
+   `src/firebaseConfig.ts`. These values are not secret.
+5. Commit and push. After the site redeploys, open it, click **Admin login**, sign in,
+   and choose **Start a new league** (or use **Settings → Import backup** to bring in
+   an exported league).
+
+To remove an admin, delete their document under `admins` (and optionally the user
+under Authentication).
 
 ## Season format
 

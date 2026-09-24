@@ -6,17 +6,20 @@ import { StandingsPage } from './pages/StandingsPage';
 import { PlayoffsPage } from './pages/PlayoffsPage';
 import { RosterPage } from './pages/RosterPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { LoginPage } from './pages/LoginPage';
+import { SetupLeague } from './pages/SetupLeague';
+import { AdminOnly } from './components';
 
 const NAV = [
   { path: 'schedule', label: 'Schedule' },
   { path: 'standings', label: 'Standings' },
   { path: 'playoffs', label: 'Playoffs' },
   { path: 'roster', label: 'Roster' },
-  { path: 'settings', label: 'Settings' },
+  { path: 'settings', label: 'Settings', adminOnly: true },
 ];
 
 export default function App() {
-  const { league } = useLeague();
+  const { league, status, canEdit, cloudEnabled, user, saveState, error } = useLeague();
   const [page = 'schedule', arg] = useHashRoute();
   const active = page === 'week' ? 'schedule' : page;
 
@@ -25,25 +28,35 @@ export default function App() {
   }, [league.settings.leagueName]);
 
   let content;
-  switch (page) {
-    case 'week':
-      content = <WeekPage number={Number(arg)} />;
-      break;
-    case 'standings':
-      content = <StandingsPage />;
-      break;
-    case 'playoffs':
-      content = <PlayoffsPage />;
-      break;
-    case 'roster':
-      content = <RosterPage />;
-      break;
-    case 'settings':
-      content = <SettingsPage />;
-      break;
-    default:
-      content = <SchedulePage />;
-  }
+  if (page === 'login') content = <LoginPage />;
+  else if (status === 'loading') content = <p className="muted">Loading league…</p>;
+  else if (status === 'error')
+    content = (
+      <div className="card empty">
+        <p className="error">Couldn’t load the league: {error}</p>
+      </div>
+    );
+  else if (status === 'missing') content = <SetupLeague />;
+  else
+    switch (page) {
+      case 'week':
+        content = <WeekPage number={Number(arg)} />;
+        break;
+      case 'standings':
+        content = <StandingsPage />;
+        break;
+      case 'playoffs':
+        content = <PlayoffsPage />;
+        break;
+      case 'roster':
+        content = <RosterPage />;
+        break;
+      case 'settings':
+        content = canEdit ? <SettingsPage /> : <AdminOnly />;
+        break;
+      default:
+        content = <SchedulePage />;
+    }
 
   return (
     <>
@@ -56,14 +69,31 @@ export default function App() {
             <span>{league.settings.leagueName}</span>
           </a>
           <nav>
-            {NAV.map((n) => (
+            {NAV.filter((n) => canEdit || !n.adminOnly).map((n) => (
               <a key={n.path} href={`#/${n.path}`} className={active === n.path ? 'active' : undefined}>
                 {n.label}
               </a>
             ))}
           </nav>
+          {cloudEnabled && (
+            <div className="account">
+              {canEdit && (
+                <span className={`save-state ${saveState}`} title={saveState === 'error' ? error : undefined}>
+                  {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Not saved' : 'Saved'}
+                </span>
+              )}
+              <a href="#/login" className={`account-link${active === 'login' ? ' active' : ''}`}>
+                {user ? (canEdit ? 'Admin' : 'Account') : 'Admin login'}
+              </a>
+            </div>
+          )}
         </div>
       </header>
+      {saveState === 'error' && canEdit && (
+        <div className="banner error-banner">
+          Your last change wasn’t saved: {error}. Check your connection and make the change again.
+        </div>
+      )}
       <main>{content}</main>
     </>
   );

@@ -12,7 +12,7 @@ import { average, playerStats, progress, rank, regularGames } from '../lib/stand
 import { SIDE_SIZE } from '../lib/types';
 
 export function PlayoffsPage() {
-  const { league, update, player } = useLeague();
+  const { league, update, player, canEdit } = useLeague();
   const schedule = league.schedule;
   if (!schedule) return <NoSchedule />;
 
@@ -37,9 +37,11 @@ export function PlayoffsPage() {
   return (
     <section>
       <PageHeader title="Playoffs">
-        <button className={`btn${seeding ? '' : ' primary'}`} onClick={seed}>
-          {seeding ? 'Re-seed from standings' : 'Seed playoffs from standings'}
-        </button>
+        {canEdit && (
+          <button className={`btn${seeding ? '' : ' primary'}`} onClick={seed}>
+            {seeding ? 'Re-seed from standings' : 'Seed playoffs from standings'}
+          </button>
+        )}
       </PageHeader>
       <p className="muted">
         Seeds come from the regular-season standings (weeks 1–14). Regular season: <Progress {...regular} />.
@@ -49,7 +51,8 @@ export function PlayoffsPage() {
       {!seeding ? (
         <div className="card empty">
           <p>
-            Once the regular season is finished, seed the playoffs. Week {doublesWeek.number} is doubles (A1 + B8, A2 +
+            {canEdit ? 'Once the regular season is finished, seed the playoffs.' : 'Playoff matchups will be posted after the regular season.'}{' '}
+            Week {doublesWeek.number} is doubles (A1 + B8, A2 +
             B7 … A8 + B1); week {singlesWeek.number} is singles with the top four and bottom four of each side playing
             within their group.
           </p>
@@ -61,7 +64,7 @@ export function PlayoffsPage() {
               <h2>Week {doublesWeek.number} · Doubles</h2>
               <Progress {...progress(doublesWeek.games)} />
               <a className="btn small" href={`#/week/${doublesWeek.number}`}>
-                Enter scores
+                {canEdit ? 'Enter scores' : 'View games'}
               </a>
             </div>
             <div className="table-wrap">
@@ -105,7 +108,7 @@ export function PlayoffsPage() {
               <h2>Week {singlesWeek.number} · Singles</h2>
               <Progress {...progress(singlesWeek.games)} />
               <a className="btn small" href={`#/week/${singlesWeek.number}`}>
-                Enter scores
+                {canEdit ? 'Enter scores' : 'View games'}
               </a>
             </div>
             <div className="two-col">

@@ -62,6 +62,15 @@ export function loadLeague(): League {
   return defaultLeague();
 }
 
+/** True when this browser has league data saved from local mode. */
+export function hasLocalLeague(): boolean {
+  try {
+    return localStorage.getItem(KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function saveLeague(league: League): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(league));

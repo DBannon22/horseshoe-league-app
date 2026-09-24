@@ -6,7 +6,7 @@ import { RANK_LABEL } from '../lib/standings';
 import type { RankBy } from '../lib/types';
 
 export function SettingsPage() {
-  const { league, update, replace } = useLeague();
+  const { league, update, replace, cloudEnabled } = useLeague();
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
 
@@ -82,8 +82,9 @@ export function SettingsPage() {
       <div className="card">
         <h2>Data</h2>
         <p className="muted">
-          Everything is saved in this browser automatically. Export a backup regularly, and use it to move the league
-          to another computer or share it with another scorekeeper.
+          {cloudEnabled
+            ? 'Changes are saved online automatically and everyone with the link sees them right away. Export a backup now and then to keep your own copy.'
+            : 'Everything is saved in this browser automatically. Export a backup regularly, and use it to move the league to another computer.'}
         </p>
         <div className="form-row">
           <button className="btn primary" onClick={exportJson}>
