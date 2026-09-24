@@ -954,3 +954,161 @@ th {
     width: 56px;
   }
 }
+
+/* ---------- by-player week view ---------- */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--midnight);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.segmented button {
+  font: inherit;
+  font-weight: 500;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: none;
+  background: var(--white);
+  color: var(--midnight);
+  cursor: pointer;
+}
+.segmented button + button {
+  border-left: 1px solid var(--midnight);
+}
+.segmented button.on {
+  background: var(--midnight);
+  color: var(--white);
+}
+.grid-hint {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+.player-grid th,
+.player-grid td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 8px 10px;
+}
+.player-grid thead th {
+  padding-top: 0;
+}
+.player-grid tbody tr:nth-child(even) {
+  background: #faf8f5;
+}
+.player-grid tbody tr:hover {
+  background: #fdf3e0;
+}
+.pg-name {
+  width: 1%;
+}
+.pg-player {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  text-align: left;
+}
+.pg-player:hover .name {
+  text-decoration: underline;
+}
+.pcell {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "court result" "other other";
+  align-items: center;
+  justify-items: start;
+  gap: 4px 8px;
+}
+.pcell .court-pill {
+  grid-area: court;
+}
+.pcell .pc-result {
+  grid-area: result;
+}
+.pcell .pc-other {
+  grid-area: other;
+}
+.court-pill {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.8rem;
+  background: var(--midnight);
+  color: var(--white);
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.pc-other {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.pc-with {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.pc-result {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.pc-result.W {
+  background: var(--success);
+  color: var(--white);
+}
+.pc-result.L {
+  background: #f3dcda;
+  color: var(--error);
+}
+.pc-result.T {
+  background: var(--sand);
+}
+
+@media (max-width: 760px) {
+  /* Each player becomes a block: name on top, one line per game below. */
+  .player-grid thead {
+    display: none;
+  }
+  .player-grid,
+  .player-grid tbody {
+    display: block;
+  }
+  .player-grid tbody tr {
+    display: block;
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .player-grid tbody th,
+  .player-grid tbody td {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    padding: 3px 0;
+    width: auto;
+  }
+  .player-grid tbody td::before {
+    content: attr(data-label);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    width: 24px;
+    flex-shrink: 0;
+  }
+  .pc-other {
+    white-space: normal;
+  }
+  .pcell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pcell .pc-result {
+    order: 3;
+  }
+}

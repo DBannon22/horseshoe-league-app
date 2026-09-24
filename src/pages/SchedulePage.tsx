@@ -14,6 +14,18 @@ const SECTIONS: { title: string; note: string; phases: Phase[] }[] = [
   { title: 'Playoffs', note: 'Week 15 doubles · Week 16 singles', phases: ['PLAYOFF_DOUBLES', 'PLAYOFF_SINGLES'] },
 ];
 
+/** "player": one row per player (find your name). "court": one row per court. */
+type View = 'player' | 'court';
+const VIEW_KEY = 'horseshoe-schedule-view';
+
+function loadView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'court' ? 'court' : 'player';
+  } catch {
+    return 'player';
+  }
+}
+
 /** The next league night on or after today, if the season isn't over. */
 function nextWeekNumber(weeks: Week[]): number | null {
   const today = todayIso();
@@ -24,6 +36,15 @@ export function SchedulePage() {
   const { league, canEdit } = useLeague();
   const schedule = league.schedule;
   const [focus, setFocus] = useState('');
+  const [view, setViewState] = useState<View>(loadView);
+  const setView = (v: View) => {
+    setViewState(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      // Only a convenience; ignore storage failures.
+    }
+  };
   const next = schedule ? nextWeekNumber(schedule.weeks) : null;
   const [expanded, setExpanded] = useState<Set<number>>(() => {
     const open = next ?? schedule?.weeks.find((w) => w.games.some((g) => !outcome(g).complete))?.number;
@@ -88,6 +109,19 @@ export function SchedulePage() {
             ))}
           </select>
         </label>
+        {!focus && (
+          <div className="field">
+            <span>Show weeks</span>
+            <div className="segmented" role="group" aria-label="Show weeks">
+              <button className={view === 'player' ? 'on' : undefined} onClick={() => setView('player')}>
+                By player
+              </button>
+              <button className={view === 'court' ? 'on' : undefined} onClick={() => setView('court')}>
+                By court
+              </button>
+            </div>
+          </div>
+        )}
         <span className="muted">
           Starts {formatDate(schedule.startDate)} · {schedule.gamesPerNight} game
           {schedule.gamesPerNight === 1 ? '' : 's'} per night
@@ -110,9 +144,14 @@ export function SchedulePage() {
                 <WeekCard
                   key={week.number}
                   week={week}
+                  view={view}
                   next={week.number === next}
                   open={expanded.has(week.number)}
                   onToggle={() => toggle(week.number)}
+                  onPick={(id) => {
+                    setFocus(id);
+                    window.scrollTo(0, 0);
+                  }}
                 />
               ))}
           </div>
@@ -210,7 +249,21 @@ function Generator() {
   );
 }
 
-function WeekCard({ week, next, open, onToggle }: { week: Week; next: boolean; open: boolean; onToggle: () => void }) {
+function WeekCard({
+  week,
+  view,
+  next,
+  open,
+  onToggle,
+  onPick,
+}: {
+  week: Week;
+  view: View;
+  next: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onPick: (id: string) => void;
+}) {
   const { canEdit } = useLeague();
   const p = progress(week.games);
   const linkLabel = canEdit && week.games.length > 0 ? 'Enter scores' : 'Open week';
@@ -245,6 +298,8 @@ function WeekCard({ week, next, open, onToggle }: { week: Week; next: boolean; o
             <p className="muted">
               Matchups are set from the final regular-season standings — see <a href="#/playoffs">Playoffs</a>.
             </p>
+          ) : view === 'player' ? (
+            <PlayerGrid week={week} onPick={onPick} />
           ) : isRegular(week.phase) ? (
             <CourtTable week={week} />
           ) : (
@@ -253,6 +308,89 @@ function WeekCard({ week, next, open, onToggle }: { week: Week; next: boolean; o
         </div>
       )}
     </article>
+  );
+}
+
+/**
+ * One row per player, alphabetical, one column per game: which court they're
+ * on and who their partner is. Built so anyone can find their own name and
+ * read across. Clicking a name opens that player's full schedule.
+ */
+function PlayerGrid({ week, onPick }: { week: Week; onPick: (id: string) => void }) {
+  const { league, player } = useLeague();
+  const rounds = [...new Set(week.games.map((g) => g.round))].sort((x, y) => x - y);
+  const singles = week.phase === 'PLAYOFF_SINGLES';
+  const ids = league.players
+    .filter((p) => week.games.some((g) => involves(g, p.id)))
+    .sort((x, y) => x.name.localeCompare(y.name))
+    .map((p) => p.id);
+
+  const cell = (id: string, round: number) => {
+    const g = week.games.find((x) => x.round === round && involves(x, id));
+    if (!g) return null;
+    const o = outcome(g);
+    let mine: 0 | 1;
+    let other: string;
+    if (g.kind === 'doubles') {
+      mine = g.teams[0].a === id || g.teams[0].b === id ? 0 : 1;
+      const t = g.teams[mine];
+      other = t.a === id ? t.b : t.a;
+    } else {
+      mine = g.players[0] === id ? 0 : 1;
+      other = g.players[1 - mine];
+    }
+    const result = !o.complete ? null : o.winner === null ? 'T' : o.winner === mine ? 'W' : 'L';
+    return { court: g.court, other, result };
+  };
+
+  return (
+    <>
+      <p className="grid-hint">
+        Find your name, then read across: your <strong>court</strong> and{' '}
+        <strong>{singles ? 'opponent' : 'partner'}</strong> for each {singles ? 'round' : 'game'}.
+      </p>
+      <table className="player-grid" style={{ ['--games' as string]: rounds.length }}>
+        <thead>
+          <tr>
+            <th className="pg-name">Player</th>
+            {rounds.map((r) => (
+              <th key={r}>
+                {singles ? 'Round' : 'Game'} {r}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ids.map((id) => (
+            <tr key={id}>
+              <th className="pg-name">
+                <button className="pg-player" onClick={() => onPick(id)} title="Show this player's whole season">
+                  <Name id={id} />
+                </button>
+              </th>
+              {rounds.map((r) => {
+                const c = cell(id, r);
+                return (
+                  <td key={r} data-label={`${singles ? 'R' : 'G'}${r}`}>
+                    {c ? (
+                      <div className="pcell">
+                        <span className="court-pill">Court {c.court}</span>
+                        <span className="pc-other">
+                          <span className="pc-with">{singles ? 'vs' : 'with'}</span> {player(c.other).name}
+                        </span>
+                        {c.result && <span className={`pc-result ${c.result}`}>{c.result}</span>}
+                      </div>
+                    ) : (
+                      <span className="muted pc-off">Off</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
