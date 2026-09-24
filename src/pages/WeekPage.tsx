@@ -8,7 +8,7 @@ import { TOTAL_WEEKS, type Game } from '../lib/types';
 const PHASE_HELP = {
   A_STAYS: 'Each A pair stays on its court all night. B players move to a new court each game.',
   B_STAYS: 'Each B pair stays on its court all night. A players move to a new court each game.',
-  PLAYOFF_DOUBLES: 'Seeded teams: A1 + B8, A2 + B7 … A8 + B1. Team score is both partners combined.',
+  PLAYOFF_DOUBLES: 'Seeded teams: A1 + B8, A2 + B7 … A8 + B1. Enter one score per team.',
   PLAYOFF_SINGLES: 'Top four and bottom four of each side play a round robin within their group.',
 };
 
@@ -93,12 +93,11 @@ function GameCard({ game, weekIndex }: { game: Game; weekIndex: number }) {
   const { update } = useLeague();
   const o = outcome(game);
 
-  const setScore = (id: string, raw: string) =>
+  const setScore = (side: 0 | 1, raw: string) =>
     update((l) => {
       const g = l.schedule!.weeks[weekIndex].games.find((x) => x.id === game.id)!;
       const n = Number(raw);
-      if (raw.trim() === '' || !Number.isFinite(n) || n < 0) delete g.scores[id];
-      else g.scores[id] = Math.round(n);
+      g.score[side] = raw.trim() === '' || !Number.isFinite(n) || n < 0 ? null : Math.round(n);
     });
 
   const sides = game.kind === 'doubles' ? game.teams.map((t) => [t.a, t.b]) : game.players.map((p) => [p]);
@@ -111,32 +110,30 @@ function GameCard({ game, weekIndex }: { game: Game; weekIndex: number }) {
         {o.complete && o.winner === null && <span className="badge tie">Tie</span>}
       </div>
       {sides.map((ids, i) => {
-        const won = o.complete && o.winner === i;
-        const lost = o.complete && o.winner === 1 - i;
+        const side = i as 0 | 1;
+        const won = o.complete && o.winner === side;
+        const lost = o.complete && o.winner === 1 - side;
         return (
-          <div key={i} className={`score-side${won ? ' won' : ''}${lost ? ' lost' : ''}`}>
+          <label key={i} className={`score-side${won ? ' won' : ''}${lost ? ' lost' : ''}`}>
             <div className="score-players">
               {ids.map((id) => (
-                <label key={id} className="score-line">
-                  <Name id={id} />
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    className="score-input mono"
-                    value={game.scores[id] ?? ''}
-                    onChange={(e) => setScore(id, e.target.value)}
-                    aria-label="Points"
-                  />
-                </label>
+                <Name key={id} id={id} />
               ))}
             </div>
-            <div className="score-total">
-              {ids.length > 1 && <span className="mono total">{o.totals[i]}</span>}
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              className="score-input mono"
+              value={game.score[side] ?? ''}
+              onChange={(e) => setScore(side, e.target.value)}
+              aria-label={ids.length > 1 ? 'Team score' : 'Score'}
+            />
+            <div className="score-result">
               {won && <span className="badge win">W</span>}
               {lost && <span className="badge loss">L</span>}
             </div>
-          </div>
+          </label>
         );
       })}
     </div>

@@ -31,9 +31,10 @@ times.
 
 ## Scoring
 
-Each player's own points are entered per game; a doubles team's score is the two
-partners combined, and the higher total wins. Standings rank by total points, points
-per game, or wins (Settings), with the other two as tie-breakers.
+Enter one score per team for each game (one per player in playoff singles); the higher
+score wins. Each player is credited with their team's score and result, so individual
+standings add up the team scores from every game they played. Standings rank by total
+points, points per game, or wins (Settings), with the other two as tie-breakers.
 
 ## How the schedule is built
 

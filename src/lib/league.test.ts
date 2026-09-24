@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { generateSchedule } from './scheduler';
 import { fairnessReport, range } from './fairness';
-import { defaultLeague } from './storage';
+import { defaultLeague, migrateLeague } from './storage';
 import { roundRobin } from './roundRobin';
 import { doublesStandings, doublesTeams, seedPlayoffs, singlesGroupIds } from './playoffs';
-import { outcome, sideStandings } from './standings';
-import { isRegular, type League } from './types';
+import { outcome, playerStats, sideStandings } from './standings';
+import { isRegular, type DoublesGame, type League, type Score, type Team } from './types';
 
 const players = defaultLeague().players;
 
@@ -81,19 +81,17 @@ describe('generateSchedule', () => {
 });
 
 describe('scoring and playoffs', () => {
-  // Deterministic fake scores: A1 is best on A side, B1 best on B side.
-  const league: League = { ...defaultLeague(), schedule: generateSchedule(players, '2026-10-01', 2, 3) };
+  // Deterministic fake team scores: lower roster slots make stronger teams.
+  // With 4 games a night everyone partners everyone equally, so A1 and B1 finish on top.
+  const league: League = { ...defaultLeague(), schedule: generateSchedule(players, '2026-10-01', 4, 3) };
   const slot = (id: string) => Number(id.slice(1));
   for (const week of league.schedule!.weeks)
     for (const g of week.games) {
       if (g.kind !== 'doubles') continue;
-      for (const t of g.teams) {
-        g.scores[t.a] = 20 - slot(t.a);
-        g.scores[t.b] = 20 - slot(t.b);
-      }
+      g.score = [40 - slot(g.teams[0].a) - slot(g.teams[0].b), 40 - slot(g.teams[1].a) - slot(g.teams[1].b)];
     }
 
-  test('outcome sums partners and picks a winner', () => {
+  test('outcome picks the higher team score', () => {
     const o = outcome({
       id: 'x',
       kind: 'doubles',
@@ -103,9 +101,36 @@ describe('scoring and playoffs', () => {
         { a: 'A1', b: 'B1' },
         { a: 'A2', b: 'B2' },
       ],
-      scores: { A1: 10, B1: 5, A2: 8, B2: 6 },
+      score: [15, 14],
     });
     expect(o).toEqual({ complete: true, totals: [15, 14], winner: 0 });
+  });
+
+  test('each partner is credited with the team score', () => {
+    const game = {
+      id: 'x',
+      kind: 'doubles' as const,
+      round: 1,
+      court: 1,
+      teams: [
+        { a: 'A1', b: 'B1' },
+        { a: 'A2', b: 'B2' },
+      ] as [Team, Team],
+      score: [21, 17] as Score,
+    };
+    const [a1, b1, a2] = playerStats([game], ['A1', 'B1', 'A2']);
+    expect([a1.pts, a1.w, b1.pts, b1.w, a2.pts, a2.l]).toEqual([21, 1, 21, 1, 17, 1]);
+  });
+
+  test('old per-player scores are merged into team scores', () => {
+    const old = structuredClone(league);
+    const g = old.schedule!.weeks[0].games[0] as DoublesGame & { scores?: Record<string, number> };
+    const [t0, t1] = g.teams;
+    delete (g as Partial<DoublesGame>).score;
+    g.scores = { [t0.a]: 12, [t0.b]: 9, [t1.a]: 7 };
+    const migrated = migrateLeague(old).schedule!.weeks[0].games[0];
+    expect(migrated.score).toEqual([21, null]);
+    expect('scores' in migrated).toBe(false);
   });
 
   test('standings rank by total points', () => {
@@ -121,7 +146,7 @@ describe('scoring and playoffs', () => {
     expect(singlesGroupIds(seeding, 'B-Bottom')).toEqual(['B5', 'B6', 'B7', 'B8']);
 
     const doubles = schedule.weeks[14];
-    expect(doubles.games).toHaveLength(2 * 4);
+    expect(doubles.games).toHaveLength(4 * 4);
     const singles = schedule.weeks[15];
     expect(singles.games).toHaveLength(4 * 6);
     for (const g of singles.games) {

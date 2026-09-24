@@ -18,9 +18,8 @@ export function gameSides(game: Game): [string[], string[]] {
 }
 
 export function outcome(game: Game): Outcome {
-  const sides = gameSides(game);
-  const complete = sides.flat().every((id) => typeof game.scores[id] === 'number');
-  const totals = sides.map((ids) => ids.reduce((sum, id) => sum + (game.scores[id] ?? 0), 0)) as [number, number];
+  const complete = game.score.every((v) => typeof v === 'number');
+  const totals: [number, number] = [game.score[0] ?? 0, game.score[1] ?? 0];
   let winner: 0 | 1 | null = null;
   if (complete && totals[0] !== totals[1]) winner = totals[0] > totals[1] ? 0 : 1;
   return { complete, totals, winner };
@@ -38,7 +37,7 @@ export interface Stats {
 export const average = (s: Stats) => (s.gp ? s.pts / s.gp : 0);
 const winScore = (s: Stats) => s.w + s.t / 2;
 
-/** Individual stats: each player's own points; W/L/T follow their team's result. */
+/** Individual stats: each player is credited with their team's score and result. */
 export function playerStats(games: Game[], ids: string[]): Stats[] {
   const map = new Map(ids.map((id): [string, Stats] => [id, { id, gp: 0, w: 0, l: 0, t: 0, pts: 0 }]));
   for (const game of games) {
@@ -49,7 +48,7 @@ export function playerStats(games: Game[], ids: string[]): Stats[] {
         const s = map.get(id);
         if (!s) continue;
         s.gp++;
-        s.pts += game.scores[id];
+        s.pts += o.totals[i];
         if (o.winner === null) s.t++;
         else if (o.winner === i) s.w++;
         else s.l++;

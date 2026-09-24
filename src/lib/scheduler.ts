@@ -262,7 +262,7 @@ export function generateSchedule(
             round: g + 1,
             court: c + 1,
             teams,
-            scores: {},
+            score: [null, null],
           });
         }
       }

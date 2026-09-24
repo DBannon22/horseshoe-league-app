@@ -22,8 +22,8 @@ export interface Team {
 
 export type Phase = 'A_STAYS' | 'B_STAYS' | 'PLAYOFF_DOUBLES' | 'PLAYOFF_SINGLES';
 
-/** Points per player id; a missing entry means not yet scored. */
-export type Scores = Record<string, number>;
+/** One score per side of the game (team in doubles, player in singles); null = not yet scored. */
+export type Score = [number | null, number | null];
 
 export interface DoublesGame {
   id: string;
@@ -31,7 +31,7 @@ export interface DoublesGame {
   round: number;
   court: number;
   teams: [Team, Team];
-  scores: Scores;
+  score: Score;
 }
 
 export type SinglesGroup = 'A-Top' | 'A-Bottom' | 'B-Top' | 'B-Bottom';
@@ -43,7 +43,7 @@ export interface SinglesGame {
   court: number;
   group: SinglesGroup;
   players: [string, string];
-  scores: Scores;
+  score: Score;
 }
 
 export type Game = DoublesGame | SinglesGame;

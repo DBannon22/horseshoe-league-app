@@ -1,4 +1,4 @@
-import type { League, Player, Side } from './types';
+import type { Game, League, Player, Score, Side } from './types';
 import { SIDE_SIZE } from './types';
 
 const KEY = 'horseshoe-league:v1';
@@ -29,12 +29,32 @@ export function isLeague(x: unknown): x is League {
   );
 }
 
+type LegacyGame = Game & { scores?: Record<string, number> };
+
+/**
+ * Older saves stored points per player. Convert them to one score per side
+ * (the partners' points added together) so nothing already entered is lost.
+ */
+export function migrateLeague(league: League): League {
+  for (const week of league.schedule?.weeks ?? [])
+    for (const g of week.games as LegacyGame[]) {
+      if (g.score) continue;
+      const sides = g.kind === 'doubles' ? g.teams.map((t) => [t.a, t.b]) : g.players.map((p) => [p]);
+      const old = g.scores ?? {};
+      g.score = sides.map((ids) =>
+        ids.every((id) => typeof old[id] === 'number') ? ids.reduce((sum, id) => sum + old[id], 0) : null,
+      ) as Score;
+      delete g.scores;
+    }
+  return league;
+}
+
 export function loadLeague(): League {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (isLeague(parsed)) return parsed;
+      if (isLeague(parsed)) return migrateLeague(parsed);
     }
   } catch {
     // Storage unavailable or corrupt — start fresh.

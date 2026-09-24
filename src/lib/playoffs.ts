@@ -35,7 +35,7 @@ function doublesGames(week: number, teams: Team[], gamesPerNight: number): Doubl
       round: r + 1,
       court: c + 1,
       teams: [teams[Math.min(x, y)], teams[Math.max(x, y)]] as [Team, Team],
-      scores: {},
+      score: [null, null],
     })),
   );
 }
@@ -64,7 +64,7 @@ function singlesGames(week: number, seeding: PlayoffSeeding): SinglesGame[] {
             court: ((court - 1) % COURTS) + 1,
             group,
             players: [p0, p1],
-            scores: {},
+            score: [null, null],
           });
         }
     }
@@ -72,7 +72,7 @@ function singlesGames(week: number, seeding: PlayoffSeeding): SinglesGame[] {
 }
 
 export function hasScores(week: Week): boolean {
-  return week.games.some((g) => Object.keys(g.scores).length > 0);
+  return week.games.some((g) => g.score.some((v) => v !== null));
 }
 
 /** Seeds both playoff weeks from regular-season standings. */
@@ -98,7 +98,7 @@ export interface TeamStats extends Stats {
   seed: number;
 }
 
-/** Doubles playoff: team totals (both partners' points combined). */
+/** Doubles playoff: team totals across the night. */
 export function doublesStandings(league: League): TeamStats[] {
   const schedule = league.schedule;
   const seeding = schedule?.playoffSeeding;

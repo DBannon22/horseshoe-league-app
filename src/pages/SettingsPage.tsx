@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useLeague } from '../state';
 import { PageHeader } from '../components';
-import { defaultLeague, isLeague } from '../lib/storage';
+import { defaultLeague, isLeague, migrateLeague } from '../lib/storage';
 import { RANK_LABEL } from '../lib/standings';
 import type { RankBy } from '../lib/types';
 
@@ -27,7 +27,7 @@ export function SettingsPage() {
       const parsed = JSON.parse(await file.text());
       if (!isLeague(parsed)) throw new Error('That file is not a league backup from this app.');
       if (!window.confirm('Replace everything here with the contents of this backup?')) return;
-      replace(parsed);
+      replace(migrateLeague(parsed));
       setMessage('Backup loaded.');
     } catch (e) {
       setMessage(e instanceof Error ? e.message : String(e));
