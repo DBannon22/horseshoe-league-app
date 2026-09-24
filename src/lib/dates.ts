@@ -23,3 +23,13 @@ export function todayIso(): string {
   const now = new Date();
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
 }
+
+/** "Thu, Sep 10" — for places where the year is already clear. */
+export function formatShortDate(iso: string): string {
+  return parse(iso).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}

@@ -431,43 +431,187 @@ a:focus-visible {
   color: var(--muted);
   margin-bottom: 6px;
 }
-.courts {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-  gap: 8px;
-}
-.matchup {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.88rem;
-  background: var(--white);
-}
-.matchup.focus {
-  border-color: var(--orange);
-  box-shadow: inset 3px 0 0 var(--orange);
-}
 .court-label {
+  display: block;
   font-family: var(--mono);
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--muted);
   margin-bottom: 4px;
 }
-.team {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
 .vs {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--muted);
-  margin: 3px 0;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+
+/* sections and week header extras */
+.schedule-section {
+  margin-bottom: 24px;
+}
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+.section-title h2 {
+  margin: 0;
+}
+.tag {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--sand);
+  white-space: nowrap;
+}
+.next-tag {
+  background: var(--orange);
+  color: var(--white);
+  font-weight: 600;
+}
+.week.next {
+  border-color: var(--orange);
+  box-shadow: inset 4px 0 0 var(--orange);
+}
+
+/* regular-season court table */
+.court-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.court-table th,
+.court-table td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+.court-table thead th {
+  vertical-align: bottom;
+  padding-top: 0;
+}
+.th-sub {
+  display: block;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.72rem;
+}
+.court-table tbody th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.stay-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-right: 2px solid var(--line);
+}
+.court-table tbody tr:nth-child(even) td,
+.court-table tbody tr:nth-child(even) .stay-col {
+  background: #faf8f5;
+}
+.stack {
+  display: grid;
+  grid-template-rows: auto 1.1rem auto;
+  align-items: center;
+  gap: 2px;
+}
+.stack .vs,
+.cell-score {
+  line-height: 1.1rem;
+}
+.cell-score {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.court-table td .won .name,
+.match-side.won .name {
+  font-weight: 600;
+  color: var(--success);
+}
+
+/* playoff match list */
+.match-list {
+  display: grid;
+  gap: 6px;
+}
+.match {
+  display: grid;
+  grid-template-columns: 90px 1fr 70px 1fr;
+  grid-template-areas: 'court side0 score side1';
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.match .court-label {
+  grid-area: court;
+  margin: 0;
+}
+.match-side {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.match-side.side-0 {
+  grid-area: side0;
+  justify-content: flex-end;
+  text-align: right;
+}
+.match-side.side-1 {
+  grid-area: side1;
+}
+.match-score {
+  grid-area: score;
+  text-align: center;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .match {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'court court' 'side0 score' 'side1 score';
+    gap: 4px 12px;
+  }
+  .match-side.side-0 {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
+/* one player's schedule */
 .player-schedule h2 {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+}
+.ps-week {
+  margin-top: 16px;
+}
+.ps-week-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 2px solid var(--midnight);
+}
+.ps-week.next .ps-week-head {
+  border-bottom-color: var(--orange);
+}
+.result.W {
+  color: var(--success);
+  font-weight: 600;
+}
+.result.L {
+  color: var(--error);
 }
 
 /* ---------- tables ---------- */
@@ -627,8 +771,18 @@ th {
   .week {
     break-inside: avoid;
   }
-  .courts {
-    grid-template-columns: repeat(4, 1fr);
+  .stay-col {
+    position: static;
+  }
+  .chevron,
+  .body-link {
+    display: none !important;
+  }
+  .court-cards {
+    display: none !important;
+  }
+  .court-table-wrap {
+    display: block !important;
   }
 }
 
@@ -696,4 +850,107 @@ th {
 }
 .login p {
   margin: 0;
+}
+
+/* phone layout for the court table */
+.court-cards {
+  display: none;
+}
+.court-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.court-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.court-card-head .court-label {
+  margin: 0;
+}
+.court-card-pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-weight: 500;
+}
+.court-card-games {
+  font-size: 0.85rem;
+}
+.court-card-games th,
+.court-card-games td {
+  padding: 5px 4px;
+  text-align: left;
+  border-bottom: none;
+  white-space: normal;
+}
+.court-card-games th {
+  width: 28px;
+}
+.court-card-games .cell-score {
+  text-align: center;
+  width: 44px;
+}
+.court-card-games .won .name {
+  font-weight: 600;
+  color: var(--success);
+}
+@media (max-width: 640px) {
+  .court-cards {
+    display: block;
+  }
+  .court-table-wrap {
+    display: none;
+  }
+  .week-head {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .week-body {
+    padding: 10px 12px 12px;
+  }
+}
+
+/* player schedule columns line up week to week */
+.ps-table {
+  table-layout: fixed;
+}
+.ps-num {
+  width: 70px;
+}
+.ps-result {
+  width: 110px;
+}
+.ps-table td {
+  white-space: normal;
+}
+
+.body-link {
+  display: none;
+}
+@media (max-width: 640px) {
+  .head-link {
+    display: none;
+  }
+  .body-link {
+    display: inline-flex;
+    margin-bottom: 10px;
+  }
+  .week-toggle {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+  .court-card-games .side-tag {
+    display: none;
+  }
+  .court-card-games .cell-score {
+    white-space: nowrap;
+    width: 56px;
+  }
 }

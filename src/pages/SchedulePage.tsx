@@ -1,20 +1,33 @@
-import { useMemo, useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useLeague } from '../state';
-import { Name, NoSchedule, PageHeader, PhaseBadge, Progress } from '../components';
+import { Name, NoSchedule, PageHeader, Progress } from '../components';
 import { generateInWorker } from '../lib/generate';
 import { randomSeed } from '../lib/rng';
-import { formatDate, todayIso } from '../lib/dates';
+import { formatDate, formatShortDate, todayIso } from '../lib/dates';
 import { outcome, progress } from '../lib/standings';
 import { hasScores } from '../lib/playoffs';
-import { isRegular, type Game, type Week } from '../lib/types';
+import { isRegular, type DoublesGame, type Game, type Phase, type Team, type Week } from '../lib/types';
+
+const SECTIONS: { title: string; note: string; phases: Phase[] }[] = [
+  { title: 'Weeks 1–7', note: 'A side stays on its court all night · B side rotates', phases: ['A_STAYS'] },
+  { title: 'Weeks 8–14', note: 'B side stays on its court all night · A side rotates', phases: ['B_STAYS'] },
+  { title: 'Playoffs', note: 'Week 15 doubles · Week 16 singles', phases: ['PLAYOFF_DOUBLES', 'PLAYOFF_SINGLES'] },
+];
+
+/** The next league night on or after today, if the season isn't over. */
+function nextWeekNumber(weeks: Week[]): number | null {
+  const today = todayIso();
+  return weeks.find((w) => w.date >= today)?.number ?? null;
+}
 
 export function SchedulePage() {
   const { league, canEdit } = useLeague();
   const schedule = league.schedule;
   const [focus, setFocus] = useState('');
+  const next = schedule ? nextWeekNumber(schedule.weeks) : null;
   const [expanded, setExpanded] = useState<Set<number>>(() => {
-    const next = schedule?.weeks.find((w) => w.games.some((g) => !outcome(g).complete));
-    return new Set(next ? [next.number] : []);
+    const open = next ?? schedule?.weeks.find((w) => w.games.some((g) => !outcome(g).complete))?.number;
+    return new Set(open ? [open] : []);
   });
 
   const toggle = (n: number) =>
@@ -26,7 +39,7 @@ export function SchedulePage() {
     });
 
   const printAll = () => {
-    setExpanded(new Set(schedule?.weeks.map((w) => w.number)));
+    if (!focus) setExpanded(new Set(schedule?.weeks.map((w) => w.number)));
     setTimeout(() => window.print(), 50);
   };
 
@@ -41,12 +54,16 @@ export function SchedulePage() {
   return (
     <section>
       <PageHeader title="Schedule">
-        <button className="btn" onClick={() => setExpanded(new Set(schedule.weeks.map((w) => w.number)))}>
-          Expand all
-        </button>
-        <button className="btn" onClick={() => setExpanded(new Set())}>
-          Collapse all
-        </button>
+        {!focus && (
+          <>
+            <button className="btn" onClick={() => setExpanded(new Set(schedule.weeks.map((w) => w.number)))}>
+              Expand all
+            </button>
+            <button className="btn" onClick={() => setExpanded(new Set())}>
+              Collapse all
+            </button>
+          </>
+        )}
         <button className="btn" onClick={printAll}>
           Print
         </button>
@@ -54,7 +71,7 @@ export function SchedulePage() {
 
       <div className="card toolbar no-print">
         <label className="field">
-          <span>Show one player's schedule</span>
+          <span>Show schedule for</span>
           <select value={focus} onChange={(e) => setFocus(e.target.value)}>
             <option value="">Everyone</option>
             {(['A', 'B'] as const).map((side) => (
@@ -73,23 +90,34 @@ export function SchedulePage() {
         </label>
         <span className="muted">
           Starts {formatDate(schedule.startDate)} · {schedule.gamesPerNight} game
-          {schedule.gamesPerNight === 1 ? '' : 's'} per night · schedule #{schedule.seed}
+          {schedule.gamesPerNight === 1 ? '' : 's'} per night
+          {canEdit && ` · schedule #${schedule.seed}`}
         </span>
       </div>
 
-      {focus && <PlayerSchedule id={focus} weeks={schedule.weeks} />}
-
-      <div className="weeks">
-        {schedule.weeks.map((week) => (
-          <WeekCard
-            key={week.number}
-            week={week}
-            open={expanded.has(week.number)}
-            onToggle={() => toggle(week.number)}
-            focus={focus}
-          />
-        ))}
-      </div>
+      {focus ? (
+        <PlayerSchedule id={focus} weeks={schedule.weeks} next={next} />
+      ) : (
+        SECTIONS.map((section) => (
+          <div key={section.title} className="schedule-section">
+            <div className="section-title">
+              <h2>{section.title}</h2>
+              <span className="muted small">{section.note}</span>
+            </div>
+            {schedule.weeks
+              .filter((w) => section.phases.includes(w.phase))
+              .map((week) => (
+                <WeekCard
+                  key={week.number}
+                  week={week}
+                  next={week.number === next}
+                  open={expanded.has(week.number)}
+                  onToggle={() => toggle(week.number)}
+                />
+              ))}
+          </div>
+        ))
+      )}
 
       {canEdit && (
         <details className="card regenerate no-print">
@@ -182,85 +210,281 @@ function Generator() {
   );
 }
 
-function WeekCard({
-  week,
-  open,
-  onToggle,
-  focus,
-}: {
-  week: Week;
-  open: boolean;
-  onToggle: () => void;
-  focus: string;
-}) {
+function WeekCard({ week, next, open, onToggle }: { week: Week; next: boolean; open: boolean; onToggle: () => void }) {
   const { canEdit } = useLeague();
   const p = progress(week.games);
+  const linkLabel = canEdit && week.games.length > 0 ? 'Enter scores' : 'Open week';
+  const kind = week.phase === 'PLAYOFF_DOUBLES' ? 'Doubles' : week.phase === 'PLAYOFF_SINGLES' ? 'Singles' : null;
   return (
-    <article className={`card week${open ? ' open' : ''}`}>
+    <article className={`card week${open ? ' open' : ''}${next ? ' next' : ''}`}>
       <header className="week-head">
         <button className="week-toggle" onClick={onToggle} aria-expanded={open}>
           <span className="chevron" aria-hidden="true">
             ›
           </span>
           <span className="week-num">Week {week.number}</span>
-          <span className="week-date">{formatDate(week.date)}</span>
+          <span className="week-date">{formatShortDate(week.date)}</span>
         </button>
-        <PhaseBadge phase={week.phase} />
-        <Progress {...p} />
-        <a className="btn small" href={`#/week/${week.number}`}>
-          {canEdit && (isRegular(week.phase) || week.games.length) ? 'Enter scores' : 'View'}
+        {next && <span className="tag next-tag">Next up</span>}
+        {kind && <span className="tag">{kind}</span>}
+        {p.total > 0 && p.done === p.total ? (
+          <span className="progress complete">✓ Final</span>
+        ) : (
+          p.done > 0 && <Progress {...p} />
+        )}
+        <a className="btn small head-link" href={`#/week/${week.number}`}>
+          {linkLabel}
         </a>
       </header>
-      {open && <WeekMatchups week={week} focus={focus} />}
+      {open && (
+        <div className="week-body">
+          <a className="btn small body-link" href={`#/week/${week.number}`}>
+            {linkLabel}
+          </a>
+          {week.games.length === 0 ? (
+            <p className="muted">
+              Matchups are set from the final regular-season standings — see <a href="#/playoffs">Playoffs</a>.
+            </p>
+          ) : isRegular(week.phase) ? (
+            <CourtTable week={week} />
+          ) : (
+            <MatchList week={week} />
+          )}
+        </div>
+      )}
     </article>
   );
 }
 
-export function WeekMatchups({ week, focus }: { week: Week; focus: string }) {
-  const rounds = useMemo(() => groupByRound(week.games), [week.games]);
-  if (week.games.length === 0)
-    return (
-      <p className="muted week-body">
-        Matchups are set from the final regular-season standings — see <a href="#/playoffs">Playoffs</a>.
-      </p>
-    );
+/**
+ * Regular-season night: each court keeps the same staying pair all night, so
+ * show one row per court and one column per game with the rotating partners.
+ * The first partner listed plays with the first staying player. Phones get a
+ * stacked version (one block per court, one line per game) instead.
+ */
+function CourtTable({ week }: { week: Week }) {
+  const staySide = week.phase === 'A_STAYS' ? 'A' : 'B';
+  const rotateSide = staySide === 'A' ? 'B' : 'A';
+  const games = week.games.filter((g): g is DoublesGame => g.kind === 'doubles');
+  const rounds = [...new Set(games.map((g) => g.round))].sort((x, y) => x - y);
+  const courts = [...new Set(games.map((g) => g.court))].sort((x, y) => x - y);
+  const stayer = (t: Team) => (staySide === 'A' ? t.a : t.b);
+  const rotator = (t: Team) => (staySide === 'A' ? t.b : t.a);
+
+  const rows = courts.map((court) => {
+    const row = games.filter((g) => g.court === court);
+    const [first, second] = row[0].teams.map(stayer);
+    const cells = rounds.map((round) => {
+      const g = row.find((x) => x.round === round);
+      if (!g) return { round, game: null };
+      const i = stayer(g.teams[0]) === first ? 0 : 1;
+      const o = outcome(g);
+      return {
+        round,
+        game: {
+          partners: [rotator(g.teams[i]), rotator(g.teams[1 - i])],
+          won: [o.winner === i, o.winner === 1 - i],
+          score: o.complete ? [o.totals[i], o.totals[1 - i]] : null,
+        },
+      };
+    });
+    return { court, first, second, cells };
+  });
+
   return (
-    <div className="week-body">
-      {rounds.map(([round, games]) => (
-        <div key={round} className="round">
-          <div className="round-label">{week.phase === 'PLAYOFF_SINGLES' ? `Round ${round}` : `Game ${round}`}</div>
-          <div className="courts">
-            {games.map((g) => (
-              <div key={g.id} className={`matchup${focus && involves(g, focus) ? ' focus' : ''}`}>
-                <div className="court-label">
-                  Court {g.court}
-                  {g.kind === 'singles' && <span className="group-tag">{g.group}</span>}
-                </div>
-                {g.kind === 'doubles' ? (
-                  <>
-                    <div className="team">
-                      <Name id={g.teams[0].a} mark={focus} />
-                      <Name id={g.teams[0].b} mark={focus} />
-                    </div>
-                    <div className="vs">vs</div>
-                    <div className="team">
-                      <Name id={g.teams[1].a} mark={focus} />
-                      <Name id={g.teams[1].b} mark={focus} />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="team">
-                      <Name id={g.players[0]} mark={focus} />
-                    </div>
-                    <div className="vs">vs</div>
-                    <div className="team">
-                      <Name id={g.players[1]} mark={focus} />
-                    </div>
-                  </>
-                )}
-              </div>
+    <>
+      <div className="table-wrap court-table-wrap">
+        <table className="court-table">
+          <thead>
+            <tr>
+              <th className="stay-col">Staying ({staySide} side)</th>
+              {rounds.map((r) => (
+                <th key={r}>
+                  Game {r}
+                  <span className="th-sub">{rotateSide} partners</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ court, first, second, cells }) => (
+              <tr key={court}>
+                <th className="stay-col">
+                  <span className="court-label">Court {court}</span>
+                  <div className="stack">
+                    <Name id={first} />
+                    <span className="vs">vs</span>
+                    <Name id={second} />
+                  </div>
+                </th>
+                {cells.map(({ round, game }) => (
+                  <td key={round}>
+                    {game && (
+                      <div className="stack">
+                        <span className={game.won[0] ? 'won' : undefined}>
+                          <Name id={game.partners[0]} />
+                        </span>
+                        <span className="cell-score mono">{game.score && `${game.score[0]} – ${game.score[1]}`}</span>
+                        <span className={game.won[1] ? 'won' : undefined}>
+                          <Name id={game.partners[1]} />
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                ))}
+              </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="court-cards">
+        {rows.map(({ court, first, second, cells }) => (
+          <div key={court} className="court-card">
+            <div className="court-card-head">
+              <span className="court-label">Court {court}</span>
+              <span className="court-card-pair">
+                <Name id={first} />
+                <span className="vs">vs</span>
+                <Name id={second} />
+              </span>
+            </div>
+            <table className="court-card-games">
+              <tbody>
+                {cells.map(
+                  ({ round, game }) =>
+                    game && (
+                      <tr key={round}>
+                        <th className="mono">G{round}</th>
+                        <td className={game.won[0] ? 'won' : undefined}>
+                          <Name id={game.partners[0]} />
+                        </td>
+                        <td className="mono cell-score">{game.score && `${game.score[0]}–${game.score[1]}`}</td>
+                        <td className={game.won[1] ? 'won' : undefined}>
+                          <Name id={game.partners[1]} />
+                        </td>
+                      </tr>
+                    ),
+                )}
+              </tbody>
+            </table>
+          </div>
+        ))}
+        <p className="muted small">
+          Each game: the left {rotateSide} partner plays with the first staying player, the right one with the second.
+        </p>
+      </div>
+    </>
+  );
+}
+
+/** Playoff nights: a plain list of matchups per game, with scores once entered. */
+function MatchList({ week }: { week: Week }) {
+  const label = week.phase === 'PLAYOFF_SINGLES' ? 'Round' : 'Game';
+  return (
+    <>
+      {groupByRound(week.games).map(([round, games]) => (
+        <div key={round} className="round">
+          <div className="round-label">
+            {label} {round}
+          </div>
+          <div className="match-list">
+            {games.map((g) => {
+              const o = outcome(g);
+              const sides = g.kind === 'doubles' ? g.teams.map((t) => [t.a, t.b]) : g.players.map((p) => [p]);
+              return (
+                <div key={g.id} className="match">
+                  <span className="court-label">
+                    Court {g.court}
+                    {g.kind === 'singles' && <span className="group-tag">{g.group.replace('-', ' ')}</span>}
+                  </span>
+                  {sides.map((ids, i) => (
+                    <span key={i} className={`match-side side-${i}${o.winner === i ? ' won' : ''}`}>
+                      {ids.map((id) => (
+                        <Name key={id} id={id} />
+                      ))}
+                    </span>
+                  ))}
+                  <span className="match-score mono">{o.complete ? `${o.totals[0]} – ${o.totals[1]}` : 'vs'}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function PlayerSchedule({ id, weeks, next }: { id: string; weeks: Week[]; next: number | null }) {
+  const { player } = useLeague();
+  const name = (x: string) => player(x).name;
+  const byWeek = weeks
+    .map((week) => ({ week, games: week.games.filter((g) => involves(g, id)).sort((x, y) => x.round - y.round) }))
+    .filter((w) => w.games.length > 0);
+
+  return (
+    <div className="card player-schedule">
+      <h2>{player(id).name}</h2>
+      <p className="muted small no-print">Every game this player is scheduled for. Print this page for a personal copy.</p>
+      {byWeek.length === 0 && <p className="muted">No games yet.</p>}
+      {byWeek.map(({ week, games }) => (
+        <div key={week.number} className={`ps-week${week.number === next ? ' next' : ''}`}>
+          <div className="ps-week-head">
+            <strong>Week {week.number}</strong>
+            <span className="muted">{formatDate(week.date)}</span>
+            {week.number === next && <span className="tag next-tag">Next up</span>}
+            <StayNote week={week} id={id} games={games} />
+          </div>
+          <div className="table-wrap">
+            <table className="ps-table">
+              <colgroup>
+                <col className="ps-num" />
+                <col className="ps-num" />
+                <col />
+                <col />
+                <col className="ps-result" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Game</th>
+                  <th>Court</th>
+                  <th>Partner</th>
+                  <th>Opponents</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {games.map((game) => {
+                  const o = outcome(game);
+                  let partner = '—';
+                  let opponents: string;
+                  let mine: number;
+                  if (game.kind === 'doubles') {
+                    mine = game.teams.findIndex((t) => t.a === id || t.b === id);
+                    const t = game.teams[mine];
+                    const opp = game.teams[1 - mine];
+                    partner = name(t.a === id ? t.b : t.a);
+                    opponents = `${name(opp.a)} & ${name(opp.b)}`;
+                  } else {
+                    mine = game.players[0] === id ? 0 : 1;
+                    opponents = name(game.players[1 - mine]);
+                  }
+                  const result = !o.complete
+                    ? ''
+                    : `${o.winner === null ? 'T' : o.winner === mine ? 'W' : 'L'} ${o.totals[mine]}–${o.totals[1 - mine]}`;
+                  return (
+                    <tr key={game.id}>
+                      <td className="mono">{game.round}</td>
+                      <td className="mono">{game.court}</td>
+                      <td>{partner}</td>
+                      <td>{opponents}</td>
+                      <td className={`mono result ${result[0] ?? ''}`}>{result}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       ))}
@@ -268,63 +492,17 @@ export function WeekMatchups({ week, focus }: { week: Week; focus: string }) {
   );
 }
 
-function PlayerSchedule({ id, weeks }: { id: string; weeks: Week[] }) {
+/** "Stays on court 2" when this player is on the staying side that night. */
+function StayNote({ week, id, games }: { week: Week; id: string; games: Game[] }): ReactNode {
   const { player } = useLeague();
-  const rows = weeks.flatMap((week) =>
-    week.games.filter((g) => involves(g, id)).map((g) => ({ week, game: g })),
-  );
-  const name = (x: string) => player(x).name;
-  return (
-    <div className="card player-schedule">
-      <h2>{player(id).name}’s schedule</h2>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Week</th>
-              <th>Date</th>
-              <th>Game</th>
-              <th>Court</th>
-              <th>Partner</th>
-              <th>Opponents</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ week, game }) => {
-              let partner = '—';
-              let opponents: string;
-              if (game.kind === 'doubles') {
-                const mine = game.teams.findIndex((t) => t.a === id || t.b === id);
-                const t = game.teams[mine];
-                const o = game.teams[1 - mine];
-                partner = name(t.a === id ? t.b : t.a);
-                opponents = `${name(o.a)} & ${name(o.b)}`;
-              } else {
-                opponents = name(game.players[0] === id ? game.players[1] : game.players[0]);
-              }
-              return (
-                <tr key={game.id}>
-                  <td className="mono">{week.number}</td>
-                  <td className="mono">{week.date}</td>
-                  <td className="mono">{game.round}</td>
-                  <td className="mono">{game.court}</td>
-                  <td>{partner}</td>
-                  <td>{opponents}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      {rows.length === 0 && <p className="muted">No games yet.</p>}
-    </div>
-  );
+  const side = player(id).side;
+  const stays = (week.phase === 'A_STAYS' && side === 'A') || (week.phase === 'B_STAYS' && side === 'B');
+  if (!stays || games.length === 0) return null;
+  return <span className="tag">Stays on court {games[0].court}</span>;
 }
 
 function involves(g: Game, id: string): boolean {
-  return g.kind === 'doubles'
-    ? g.teams.some((t) => t.a === id || t.b === id)
-    : g.players.includes(id);
+  return g.kind === 'doubles' ? g.teams.some((t) => t.a === id || t.b === id) : g.players.includes(id);
 }
 
 export function groupByRound(games: Game[]): [number, Game[]][] {
