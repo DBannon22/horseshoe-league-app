@@ -78,8 +78,11 @@ times.
 ## Scoring
 
 Enter one score per team for each game (one per player in playoff singles); the higher
-score wins. Each player is credited with their team's score and result, so individual
-standings add up the team scores from every game they played. Standings rank by total
+score wins. The **Win** button next to each score fills in the winning score (35 by
+default, set in Settings) and jumps to the other team, so only the losing score is typed.
+Regular-season games where neither team reached 35 are flagged. Each player is credited
+with their team's score and result, so individual standings add up the team scores from
+every game they played. Standings rank by total
 points, points per game, or wins (Settings), with the other two as tie-breakers.
 
 ## How the schedule is built

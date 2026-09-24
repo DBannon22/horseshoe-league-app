@@ -686,7 +686,7 @@ th {
 .score-side {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 8px;
   border-radius: 8px;
   border: 1px solid transparent;
@@ -711,7 +711,7 @@ th {
   text-overflow: ellipsis;
 }
 .score-input {
-  width: 76px;
+  width: 60px;
   font-size: 1.1rem;
   font-weight: 600;
   text-align: right;
@@ -1192,4 +1192,38 @@ th {
     font-size: 0.78rem;
     padding: 10px 2px 9px;
   }
+}
+
+/* ---------- quick win button ---------- */
+.win-btn {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 48px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--success);
+  background: var(--white);
+  color: var(--success);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.win-btn:hover {
+  background: #e7f3eb;
+}
+.win-btn.on {
+  background: var(--success);
+  color: var(--white);
+}
+.score-side.lost .win-btn {
+  border-color: var(--line);
+  color: var(--muted);
+}
+.score-warning {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fdecc4;
+  font-size: 0.82rem;
 }

@@ -1,9 +1,10 @@
+import { useRef } from 'react';
 import { useLeague } from '../state';
 import { Name, NoSchedule, PageHeader, PhaseBadge, Progress } from '../components';
 import { groupByRound } from './SchedulePage';
 import { addDays, formatDate } from '../lib/dates';
 import { outcome, progress } from '../lib/standings';
-import { TOTAL_WEEKS, type Game } from '../lib/types';
+import { isRegular, TOTAL_WEEKS, type Game } from '../lib/types';
 
 const PHASE_HELP = {
   A_STAYS: 'Each A pair stays on its court all night. B players move to a new court each game.',
@@ -88,7 +89,7 @@ export function WeekPage({ number }: { number: number }) {
             <h2>{week.phase === 'PLAYOFF_SINGLES' ? `Round ${round}` : `Game ${round}`}</h2>
             <div className="score-grid">
               {games.map((g) => (
-                <GameCard key={g.id} game={g} weekIndex={number - 1} />
+                <GameCard key={g.id} game={g} weekIndex={number - 1} regular={isRegular(week.phase)} />
               ))}
             </div>
           </div>
@@ -98,18 +99,42 @@ export function WeekPage({ number }: { number: number }) {
   );
 }
 
-function GameCard({ game, weekIndex }: { game: Game; weekIndex: number }) {
-  const { update, canEdit } = useLeague();
+function GameCard({ game, weekIndex, regular }: { game: Game; weekIndex: number; regular: boolean }) {
+  const { league, update, canEdit } = useLeague();
+  const win = league.settings.winningScore;
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const o = outcome(game);
 
-  const setScore = (side: 0 | 1, raw: string) =>
+  const edit = (mutate: (score: Game['score']) => void) =>
     update((l) => {
-      const g = l.schedule!.weeks[weekIndex].games.find((x) => x.id === game.id)!;
-      const n = Number(raw);
-      g.score[side] = raw.trim() === '' || !Number.isFinite(n) || n < 0 ? null : Math.round(n);
+      mutate(l.schedule!.weeks[weekIndex].games.find((x) => x.id === game.id)!.score);
     });
 
+  const setScore = (side: 0 | 1, raw: string) =>
+    edit((score) => {
+      const n = Number(raw);
+      score[side] = raw.trim() === '' || !Number.isFinite(n) || n < 0 ? null : Math.round(n);
+    });
+
+  /** Give this side the winning score and move to the other side's box. */
+  const markWin = (side: 0 | 1) => {
+    edit((score) => {
+      score[side] = win;
+      const other = score[1 - side];
+      if (other !== null && other >= win) score[1 - side] = null;
+    });
+    const next = inputs.current[1 - side];
+    next?.focus();
+    next?.select();
+  };
+
   const sides = game.kind === 'doubles' ? game.teams.map((t) => [t.a, t.b]) : game.players.map((p) => [p]);
+  const [s0, s1] = game.score;
+  let warning = '';
+  if (regular && canEdit && s0 !== null && s1 !== null) {
+    if (Math.max(s0, s1) < win) warning = `Neither team has ${win} yet.`;
+    else if (Math.min(s0, s1) >= win) warning = `Both teams have ${win} or more.`;
+  }
 
   return (
     <div className="card game-card">
@@ -123,32 +148,49 @@ function GameCard({ game, weekIndex }: { game: Game; weekIndex: number }) {
         const won = o.complete && o.winner === side;
         const lost = o.complete && o.winner === 1 - side;
         return (
-          <label key={i} className={`score-side${won ? ' won' : ''}${lost ? ' lost' : ''}`}>
+          <div key={i} className={`score-side${won ? ' won' : ''}${lost ? ' lost' : ''}`}>
             <div className="score-players">
               {ids.map((id) => (
                 <Name key={id} id={id} />
               ))}
             </div>
             {canEdit ? (
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                className="score-input mono"
-                value={game.score[side] ?? ''}
-                onChange={(e) => setScore(side, e.target.value)}
-                aria-label={ids.length > 1 ? 'Team score' : 'Score'}
-              />
+              <>
+                <input
+                  ref={(el) => {
+                    inputs.current[side] = el;
+                  }}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  className="score-input mono"
+                  value={game.score[side] ?? ''}
+                  onChange={(e) => setScore(side, e.target.value)}
+                  aria-label={ids.length > 1 ? 'Team score' : 'Score'}
+                />
+                <button
+                  type="button"
+                  className={`win-btn${won ? ' on' : ''}`}
+                  onClick={() => markWin(side)}
+                  aria-pressed={won}
+                  title={`Mark as the win (${win} points)`}
+                >
+                  {won ? 'W' : 'Win'}
+                </button>
+              </>
             ) : (
-              <span className="score-value mono">{game.score[side] ?? '–'}</span>
+              <>
+                <span className="score-value mono">{game.score[side] ?? '–'}</span>
+                <div className="score-result">
+                  {won && <span className="badge win">W</span>}
+                  {lost && <span className="badge loss">L</span>}
+                </div>
+              </>
             )}
-            <div className="score-result">
-              {won && <span className="badge win">W</span>}
-              {lost && <span className="badge loss">L</span>}
-            </div>
-          </label>
+          </div>
         );
       })}
+      {warning && <p className="score-warning">{warning}</p>}
     </div>
   );
 }

@@ -77,7 +77,11 @@ export interface Settings {
   leagueName: string;
   gamesPerNight: number;
   rankBy: RankBy;
+  /** Points that win a game (the “Win” button fills this in). */
+  winningScore: number;
 }
+
+export const DEFAULT_WINNING_SCORE = 35;
 
 export interface League {
   version: 1;

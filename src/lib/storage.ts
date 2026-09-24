@@ -1,5 +1,5 @@
 import type { Game, League, Player, Score, Side } from './types';
-import { SIDE_SIZE } from './types';
+import { DEFAULT_WINNING_SCORE, SIDE_SIZE } from './types';
 
 const KEY = 'horseshoe-league:v1';
 
@@ -11,7 +11,12 @@ export function defaultLeague(): League {
   return {
     version: 1,
     players,
-    settings: { leagueName: 'Horseshoe League', gamesPerNight: 4, rankBy: 'points' },
+    settings: {
+      leagueName: 'Horseshoe League',
+      gamesPerNight: 4,
+      rankBy: 'points',
+      winningScore: DEFAULT_WINNING_SCORE,
+    },
     schedule: null,
   };
 }
@@ -46,6 +51,8 @@ export function migrateLeague(league: League): League {
       ) as Score;
       delete g.scores;
     }
+  // Leagues saved before the winning-score setting existed.
+  if (typeof league.settings.winningScore !== 'number') league.settings.winningScore = DEFAULT_WINNING_SCORE;
   return league;
 }
 
