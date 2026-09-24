@@ -3,6 +3,7 @@ import { generateSchedule } from './scheduler';
 import { fairnessReport, range } from './fairness';
 import { defaultLeague, migrateLeague } from './storage';
 import { roundRobin } from './roundRobin';
+import { formatPhone, parseSpares, telHref } from './spares';
 import { doublesStandings, doublesTeams, seedPlayoffs, singlesGroupIds } from './playoffs';
 import { outcome, playerStats, sideStandings } from './standings';
 import { isRegular, type DoublesGame, type League, type Score, type Team } from './types';
@@ -183,5 +184,35 @@ describe('winning score setting', () => {
     const old = defaultLeague();
     delete (old.settings as Partial<typeof old.settings>).winningScore;
     expect(migrateLeague(old).settings.winningScore).toBe(35);
+  });
+});
+
+describe('spares', () => {
+  test('parses a pasted list in several phone formats', () => {
+    const text = [
+      'Pat Smith          519.555.0100',
+      '  Jo  Ann Lee 905-555-0199',
+      'Sam Brown, (226) 555 0123',
+      'No Number Nelson',
+      '',
+    ].join('\n');
+    expect(parseSpares(text)).toEqual([
+      { name: 'Pat Smith', phone: '519.555.0100' },
+      { name: 'Jo Ann Lee', phone: '905-555-0199' },
+      { name: 'Sam Brown', phone: '(226) 555 0123' },
+      { name: 'No Number Nelson', phone: '' },
+    ]);
+  });
+
+  test('formats numbers and builds call links', () => {
+    expect(formatPhone('519.555.0100')).toBe('519-555-0100');
+    expect(formatPhone('+1 (226) 555-0123')).toBe('226-555-0123');
+    expect(telHref('519.555.0100')).toBe('tel:5195550100');
+  });
+
+  test('older saved leagues get an empty spares list', () => {
+    const old = defaultLeague();
+    delete (old as Partial<League>).spares;
+    expect(migrateLeague(old).spares).toEqual([]);
   });
 });

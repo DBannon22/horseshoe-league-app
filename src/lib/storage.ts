@@ -18,6 +18,7 @@ export function defaultLeague(): League {
       winningScore: DEFAULT_WINNING_SCORE,
     },
     schedule: null,
+    spares: [],
   };
 }
 
@@ -53,6 +54,8 @@ export function migrateLeague(league: League): League {
     }
   // Leagues saved before the winning-score setting existed.
   if (typeof league.settings.winningScore !== 'number') league.settings.winningScore = DEFAULT_WINNING_SCORE;
+  // Leagues saved before the spares list existed.
+  if (!Array.isArray(league.spares)) league.spares = [];
   return league;
 }
 

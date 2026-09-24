@@ -83,11 +83,19 @@ export interface Settings {
 
 export const DEFAULT_WINNING_SCORE = 35;
 
+/** A fill-in player who can be called when a rostered player can't make it. */
+export interface Spare {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export interface League {
   version: 1;
   players: Player[];
   settings: Settings;
   schedule: Schedule | null;
+  spares: Spare[];
 }
 
 export const PHASE_LABEL: Record<Phase, string> = {
