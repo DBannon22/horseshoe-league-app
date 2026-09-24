@@ -106,7 +106,7 @@ export function doublesStandings(league: League): TeamStats[] {
   const week = schedule.weeks.find((w) => w.phase === 'PLAYOFF_DOUBLES')!;
   const key = (t: Team) => `${t.a}|${t.b}`;
   const rows = doublesTeams(seeding).map(
-    (team, i): TeamStats => ({ id: key(team), team, seed: i + 1, gp: 0, w: 0, l: 0, t: 0, pts: 0 }),
+    (team, i): TeamStats => ({ id: key(team), team, seed: i + 1, gp: 0, w: 0, l: 0, pts: 0 }),
   );
   const byKey = new Map(rows.map((r) => [r.id, r]));
   for (const game of week.games) {
@@ -118,8 +118,7 @@ export function doublesStandings(league: League): TeamStats[] {
       if (!row) return;
       row.gp++;
       row.pts += o.totals[i];
-      if (o.winner === null) row.t++;
-      else if (o.winner === i) row.w++;
+      if (o.winner === i) row.w++;
       else row.l++;
     });
   }

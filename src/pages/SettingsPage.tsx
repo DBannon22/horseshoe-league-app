@@ -91,8 +91,9 @@ export function SettingsPage() {
           </label>
         </div>
         <p className="muted small">
-          Ties are broken by the other two measures. The winning score is what the “Win” button enters, and regular
-          games are flagged if neither team reaches it. Games per night is chosen when you generate the schedule.
+          Players level on the main measure are ordered by the other two. The winning score is what the “Win”
+          button enters, and regular games are flagged if neither team reaches it. Games per night is chosen when you
+          generate the schedule.
         </p>
       </div>
 

@@ -343,7 +343,7 @@ function PlayerGrid({ week, onPick }: { week: Week; onPick: (id: string) => void
       mine = g.players[0] === id ? 0 : 1;
       other = g.players[1 - mine];
     }
-    const result = !o.complete ? null : o.winner === null ? 'T' : o.winner === mine ? 'W' : 'L';
+    const result = !o.complete ? null : o.winner === mine ? 'W' : 'L';
     return { court: g.court, other, result };
   };
 
@@ -619,7 +619,7 @@ function PlayerSchedule({ id, weeks, next }: { id: string; weeks: Week[]; next: 
                   }
                   const result = !o.complete
                     ? ''
-                    : `${o.winner === null ? 'T' : o.winner === mine ? 'W' : 'L'} ${o.totals[mine]}–${o.totals[1 - mine]}`;
+                    : `${o.winner === mine ? 'W' : 'L'} ${o.totals[mine]}–${o.totals[1 - mine]}`;
                   return (
                     <tr key={game.id}>
                       <td className="mono">{game.round}</td>

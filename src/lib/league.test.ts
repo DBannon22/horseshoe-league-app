@@ -81,14 +81,16 @@ describe('generateSchedule', () => {
 });
 
 describe('scoring and playoffs', () => {
-  // Deterministic fake team scores: lower roster slots make stronger teams.
+  // Deterministic fake team scores: lower roster slots make stronger teams, and the
+  // formula never gives two teams the same score (horseshoes has no ties).
   // With 4 games a night everyone partners everyone equally, so A1 and B1 finish on top.
   const league: League = { ...defaultLeague(), schedule: generateSchedule(players, '2026-10-01', 4, 3) };
   const slot = (id: string) => Number(id.slice(1));
+  const teamScore = (t: Team) => 400 - 10 * (slot(t.a) + slot(t.b)) - slot(t.a);
   for (const week of league.schedule!.weeks)
     for (const g of week.games) {
       if (g.kind !== 'doubles') continue;
-      g.score = [40 - slot(g.teams[0].a) - slot(g.teams[0].b), 40 - slot(g.teams[1].a) - slot(g.teams[1].b)];
+      g.score = [teamScore(g.teams[0]), teamScore(g.teams[1])];
     }
 
   test('outcome picks the higher team score', () => {
@@ -103,7 +105,23 @@ describe('scoring and playoffs', () => {
       ],
       score: [15, 14],
     });
-    expect(o).toEqual({ complete: true, totals: [15, 14], winner: 0 });
+    expect(o).toEqual({ complete: true, even: false, totals: [15, 14], winner: 0 });
+  });
+
+  test('even scores are not counted, since horseshoes has no ties', () => {
+    const game = {
+      id: 'x',
+      kind: 'doubles' as const,
+      round: 1,
+      court: 1,
+      teams: [
+        { a: 'A1', b: 'B1' },
+        { a: 'A2', b: 'B2' },
+      ] as [Team, Team],
+      score: [20, 20] as Score,
+    };
+    expect(outcome(game)).toMatchObject({ complete: false, even: true, winner: null });
+    expect(playerStats([game], ['A1']).map((st) => st.gp)).toEqual([0]);
   });
 
   test('each partner is credited with the team score', () => {

@@ -75,7 +75,7 @@ export function PlayoffsPage() {
                     <th className="left">Team</th>
                     <th>Seeds</th>
                     <th>GP</th>
-                    <th>W-L-T</th>
+                    <th>W-L</th>
                     <th>Pts</th>
                     <th>Avg</th>
                   </tr>
@@ -92,7 +92,7 @@ export function PlayoffsPage() {
                       </td>
                       <td className="mono">{row.gp}</td>
                       <td className="mono">
-                        {row.w}-{row.l}-{row.t}
+                        {row.w}-{row.l}
                       </td>
                       <td className="mono strong">{row.pts}</td>
                       <td className="mono">{average(row).toFixed(1)}</td>

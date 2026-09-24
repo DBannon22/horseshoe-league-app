@@ -131,7 +131,8 @@ function GameCard({ game, weekIndex, regular }: { game: Game; weekIndex: number;
   const sides = game.kind === 'doubles' ? game.teams.map((t) => [t.a, t.b]) : game.players.map((p) => [p]);
   const [s0, s1] = game.score;
   let warning = '';
-  if (regular && canEdit && s0 !== null && s1 !== null) {
+  if (canEdit && o.even) warning = 'Scores are even — horseshoes has no ties. Check the scores.';
+  else if (regular && canEdit && s0 !== null && s1 !== null) {
     if (Math.max(s0, s1) < win) warning = `Neither team has ${win} yet.`;
     else if (Math.min(s0, s1) >= win) warning = `Both teams have ${win} or more.`;
   }
@@ -141,7 +142,6 @@ function GameCard({ game, weekIndex, regular }: { game: Game; weekIndex: number;
       <div className="game-head">
         <span className="court-label">Court {game.court}</span>
         {game.kind === 'singles' && <span className="group-tag">{game.group}</span>}
-        {o.complete && o.winner === null && <span className="badge tie">Tie</span>}
       </div>
       {sides.map((ids, i) => {
         const side = i as 0 | 1;

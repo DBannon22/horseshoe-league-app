@@ -35,7 +35,7 @@ export function StatsTable({ rows, seedLabel = '#' }: { rows: Stats[]; seedLabel
             <th>{seedLabel}</th>
             <th className="left">Player</th>
             <th>GP</th>
-            <th>W-L-T</th>
+            <th>W-L</th>
             <th>Pts</th>
             <th>Avg</th>
           </tr>
@@ -47,7 +47,7 @@ export function StatsTable({ rows, seedLabel = '#' }: { rows: Stats[]; seedLabel
               <td className="left">{player(s.id).name}</td>
               <td className="mono">{s.gp}</td>
               <td className="mono">
-                {s.w}-{s.l}-{s.t}
+                {s.w}-{s.l}
               </td>
               <td className="mono strong">{s.pts}</td>
               <td className="mono">{average(s).toFixed(1)}</td>

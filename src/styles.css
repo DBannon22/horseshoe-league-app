@@ -345,10 +345,6 @@ a:focus-visible {
   background: #f3dcda;
   color: var(--error);
 }
-.badge.tie {
-  background: var(--sand);
-  margin-left: auto;
-}
 
 /* ---------- schedule ---------- */
 .toolbar {
@@ -1064,9 +1060,6 @@ th {
 .pc-result.L {
   background: #f3dcda;
   color: var(--error);
-}
-.pc-result.T {
-  background: var(--sand);
 }
 
 @media (max-width: 760px) {

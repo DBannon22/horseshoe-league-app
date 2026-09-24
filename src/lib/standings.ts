@@ -1,9 +1,12 @@
 import { isRegular, sideIds, type Game, type League, type RankBy, type Side, type Week } from './types';
 
 export interface Outcome {
+  /** Both scores entered and different. Horseshoes has no ties, so an even score doesn't count. */
   complete: boolean;
+  /** Both scores entered but equal — almost certainly a typo. */
+  even: boolean;
   totals: [number, number];
-  /** 0 or 1 for the winning side, null for a tie or an unfinished game. */
+  /** 0 or 1 for the winning side, null while the game isn't complete. */
   winner: 0 | 1 | null;
 }
 
@@ -18,11 +21,12 @@ export function gameSides(game: Game): [string[], string[]] {
 }
 
 export function outcome(game: Game): Outcome {
-  const complete = game.score.every((v) => typeof v === 'number');
+  const entered = game.score.every((v) => typeof v === 'number');
   const totals: [number, number] = [game.score[0] ?? 0, game.score[1] ?? 0];
-  let winner: 0 | 1 | null = null;
-  if (complete && totals[0] !== totals[1]) winner = totals[0] > totals[1] ? 0 : 1;
-  return { complete, totals, winner };
+  const even = entered && totals[0] === totals[1];
+  const complete = entered && !even;
+  const winner: 0 | 1 | null = complete ? (totals[0] > totals[1] ? 0 : 1) : null;
+  return { complete, even, totals, winner };
 }
 
 export interface Stats {
@@ -30,16 +34,15 @@ export interface Stats {
   gp: number;
   w: number;
   l: number;
-  t: number;
   pts: number;
 }
 
 export const average = (s: Stats) => (s.gp ? s.pts / s.gp : 0);
-const winScore = (s: Stats) => s.w + s.t / 2;
+const winScore = (s: Stats) => s.w;
 
 /** Individual stats: each player is credited with their team's score and result. */
 export function playerStats(games: Game[], ids: string[]): Stats[] {
-  const map = new Map(ids.map((id): [string, Stats] => [id, { id, gp: 0, w: 0, l: 0, t: 0, pts: 0 }]));
+  const map = new Map(ids.map((id): [string, Stats] => [id, { id, gp: 0, w: 0, l: 0, pts: 0 }]));
   for (const game of games) {
     const o = outcome(game);
     if (!o.complete) continue;
@@ -49,8 +52,7 @@ export function playerStats(games: Game[], ids: string[]): Stats[] {
         if (!s) continue;
         s.gp++;
         s.pts += o.totals[i];
-        if (o.winner === null) s.t++;
-        else if (o.winner === i) s.w++;
+        if (o.winner === i) s.w++;
         else s.l++;
       }
     });
@@ -58,7 +60,7 @@ export function playerStats(games: Game[], ids: string[]): Stats[] {
   return ids.map((id) => map.get(id)!);
 }
 
-/** Sort best-first. Ties fall back to the other measures, then to input order. */
+/** Sort best-first. Players level on one measure fall back to the others, then input order. */
 export function rank<T extends Stats>(rows: T[], rankBy: RankBy): T[] {
   const order = new Map(rows.map((r, i) => [r, i]));
   const keys: Record<RankBy, ((s: Stats) => number)[]> = {
