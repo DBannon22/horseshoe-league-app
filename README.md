@@ -20,15 +20,18 @@ To develop against local Firebase emulators instead of the real project, run
 `firebase emulators:start --only auth,firestore --project demo-horseshoe`, then
 `VITE_FIREBASE_EMULATOR=true npm run dev`.
 
-## Admin login
+## Logins
 
-With Firebase connected (see setup below), the league is stored online:
+With Firebase connected (see setup below), the league is stored online and is
+**members only** — it holds players' and spares' contact details:
 
-- **Everyone** with the link can view the schedule, scores, standings, playoffs and
-  roster, and sees updates live.
-- **Admins** sign in with **Admin login** (top right) to enter scores, generate or change
-  the schedule, edit the roster, seed the playoffs, and use Settings. This is enforced
-  by `firestore.rules` on the server, not just by hiding buttons.
+- **Members** sign in with the shared league login to view the schedule, scores,
+  standings, playoffs, roster and spares, and see updates live. Each device stays
+  signed in.
+- **Admins** sign in with their own login to enter scores, generate or change the
+  schedule, edit the roster and spares, seed the playoffs, and use Settings.
+- Signed-out visitors only see the sign-in screen. This is enforced by
+  `firestore.rules` on the server, not just by hiding the pages.
 
 Until `src/firebaseConfig.ts` is filled in, the app runs in **local mode**: there is no
 login, and data is kept only in the browser that entered it.
@@ -51,6 +54,10 @@ login, and data is kept only in the browser that entered it.
    - **Data** tab: **Start collection** named `admins`. Use the admin's **User UID** as
      the *Document ID*, add any field (for example `name` = `League admin`), and save.
      Repeat for each extra admin.
+   - For the shared member login: in **Authentication → Users → Add user**, create one
+     account (for example `members@horseshoe-league.app` — it doesn't need to be a real
+     inbox) with the password you'll give players. Then in **Firestore → Data**, start a
+     collection named `members` with that account's **User UID** as the *Document ID*.
 4. **Project settings (gear icon) → General → Your apps → Web (`</>`)**. Register the
    app (Firebase Hosting isn't needed) and copy the `firebaseConfig` values into
    `src/firebaseConfig.ts`. These values are not secret.
@@ -59,7 +66,8 @@ login, and data is kept only in the browser that entered it.
    an exported league).
 
 To remove an admin, delete their document under `admins` (and optionally the user
-under Authentication).
+under Authentication). To change the member password, open the member account under
+**Authentication → Users** and reset it; players then sign in again with the new one.
 
 ## Season format
 

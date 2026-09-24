@@ -6,15 +6,25 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // The league: everyone can view, only admins can change it.
+    function isMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid));
+    }
+
+    // The league (schedule, scores, roster, spares' contact info): only signed-in
+    // members and admins can view it; only admins can change it.
     match /leagues/{leagueId} {
-      allow read: if true;
+      allow read: if isAdmin() || isMember();
       allow write: if isAdmin();
     }
 
-    // Admin list: managed in the Firebase console. A signed-in user may only
-    // check their own entry; nobody can add themselves.
+    // Admin and member lists are managed in the Firebase console. A signed-in
+    // user may only check their own entry; nobody can add themselves.
     match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /members/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }

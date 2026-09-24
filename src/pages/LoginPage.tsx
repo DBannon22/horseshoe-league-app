@@ -37,7 +37,7 @@ export function LoginPage() {
   if (user)
     return (
       <section className="narrow">
-        <PageHeader title="Admin" />
+        <PageHeader title={isAdmin ? 'Admin' : 'Account'} />
         <div className="card">
           <p>
             Signed in as <strong>{user.email}</strong>.
@@ -45,17 +45,15 @@ export function LoginPage() {
           {isAdmin ? (
             <p>You can enter scores, manage the schedule and roster, and seed the playoffs.</p>
           ) : (
-            <p className="error">
-              This account isn’t an admin, so it can only view. Ask the league admin to add it, or sign in with the
+            <p>
+              You can view the schedule, scores, standings and roster. To enter scores, sign out and sign in with the
               admin account.
             </p>
           )}
           <div className="form-row">
-            {isAdmin && (
-              <a className="btn primary" href="#/schedule">
-                Go to schedule
-              </a>
-            )}
+            <a className="btn primary" href="#/schedule">
+              Go to schedule
+            </a>
             <button className="btn" onClick={() => signOut()}>
               Sign out
             </button>
@@ -81,11 +79,11 @@ export function LoginPage() {
 
   return (
     <section className="narrow">
-      <PageHeader title="Admin login" />
+      <PageHeader title="Sign in" />
       <form className="card form-stack login" onSubmit={submit}>
         <p className="muted">
-          Only the league admin needs to sign in. Everyone else can view the schedule and standings without an
-          account.
+          The league site is for members only. Sign in with the league email and password — ask the league admin if
+          you don’t have them. You’ll stay signed in on this device.
         </p>
         <label className="field">
           <span>Email</span>

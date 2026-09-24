@@ -13,8 +13,12 @@ import { cloud } from './lib/cloud';
 import { defaultLeague, loadLeague, migrateLeague, saveLeague } from './lib/storage';
 import type { League, Player } from './lib/types';
 
-/** loading → first cloud read pending; missing → cloud has no league yet. */
-export type LeagueStatus = 'loading' | 'ready' | 'missing' | 'error';
+/**
+ * loading → first cloud read pending; missing → cloud has no league yet;
+ * signed-out → nobody signed in (the league is members-only);
+ * denied → signed in, but this account isn't a member or admin.
+ */
+export type LeagueStatus = 'loading' | 'ready' | 'missing' | 'error' | 'signed-out' | 'denied';
 export type SaveState = 'saved' | 'saving' | 'error';
 
 interface LeagueContextValue {
@@ -61,19 +65,6 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!cloud) return;
-    const stopLeague = cloud.watchLeague(
-      (remote) => {
-        if (pending.current !== null) return;
-        const next = remote ? migrateLeague(remote) : null;
-        leagueRef.current = next;
-        setLeague(next);
-        setStatus(next ? 'ready' : 'missing');
-      },
-      (e) => {
-        setStatus('error');
-        setError(e.message);
-      },
-    );
     const stopAuth = cloud.watchAuth(async (u) => {
       setUser(u);
       setIsAdmin(u ? await cloud!.isAdmin(u.uid) : false);
@@ -84,11 +75,39 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener('beforeunload', warnUnsaved);
     return () => {
-      stopLeague();
       stopAuth();
       window.removeEventListener('beforeunload', warnUnsaved);
     };
   }, []);
+
+  // The league is members-only, so only listen for it while someone is signed in.
+  const uid = user?.uid ?? null;
+  useEffect(() => {
+    if (!cloud || !authReady) return;
+    if (!uid) {
+      leagueRef.current = null;
+      setLeague(null);
+      setStatus('signed-out');
+      return;
+    }
+    setStatus('loading');
+    return cloud.watchLeague(
+      (remote) => {
+        if (pending.current !== null) return;
+        const next = remote ? migrateLeague(remote) : null;
+        leagueRef.current = next;
+        setLeague(next);
+        setStatus(next ? 'ready' : 'missing');
+      },
+      (e) => {
+        if ((e as { code?: string }).code === 'permission-denied') setStatus('denied');
+        else {
+          setStatus('error');
+          setError(e.message);
+        }
+      },
+    );
+  }, [uid, authReady]);
 
   const commit = useCallback((next: League) => {
     leagueRef.current = next;

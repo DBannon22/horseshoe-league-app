@@ -19,7 +19,8 @@ const NAV = [
 ];
 
 export default function App() {
-  const { league, status, canEdit, cloudEnabled, user, saveState, error } = useLeague();
+  const { league, status, canEdit, cloudEnabled, user, saveState, error, signOut } = useLeague();
+  const signedOut = status === 'signed-out';
   const [page = 'schedule', arg] = useHashRoute();
   const active = page === 'week' ? 'schedule' : page;
 
@@ -28,7 +29,19 @@ export default function App() {
   }, [league.settings.leagueName]);
 
   let content;
-  if (page === 'login') content = <LoginPage />;
+  if (signedOut || page === 'login') content = <LoginPage />;
+  else if (status === 'denied')
+    content = (
+      <div className="card empty">
+        <p>
+          You’re signed in as <strong>{user?.email}</strong>, but this account hasn’t been given access to the league.
+          Ask the league admin, or sign in with the league login.
+        </p>
+        <button className="btn primary" onClick={() => signOut()}>
+          Sign out
+        </button>
+      </div>
+    );
   else if (status === 'loading') content = <p className="muted">Loading league…</p>;
   else if (status === 'error')
     content = (
@@ -68,14 +81,16 @@ export default function App() {
             </svg>
             <span>{league.settings.leagueName}</span>
           </a>
-          <nav>
-            {NAV.filter((n) => canEdit || !n.adminOnly).map((n) => (
-              <a key={n.path} href={`#/${n.path}`} className={active === n.path ? 'active' : undefined}>
-                {n.label}
-              </a>
-            ))}
-          </nav>
-          {cloudEnabled && (
+          {!signedOut && (
+            <nav>
+              {NAV.filter((n) => canEdit || !n.adminOnly).map((n) => (
+                <a key={n.path} href={`#/${n.path}`} className={active === n.path ? 'active' : undefined}>
+                  {n.label}
+                </a>
+              ))}
+            </nav>
+          )}
+          {cloudEnabled && !signedOut && (
             <div className="account">
               {canEdit && (
                 <span className={`save-state ${saveState}`} title={saveState === 'error' ? error : undefined}>
@@ -83,7 +98,7 @@ export default function App() {
                 </span>
               )}
               <a href="#/login" className={`account-link${active === 'login' ? ' active' : ''}`}>
-                {user ? (canEdit ? 'Admin' : 'Account') : 'Admin login'}
+                {user ? (canEdit ? 'Admin' : 'Account') : 'Sign in'}
               </a>
             </div>
           )}
