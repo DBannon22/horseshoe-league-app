@@ -162,8 +162,8 @@ describe('scoring and playoffs', () => {
 describe('winning score setting', () => {
   test('defaults to 35 and is added to older saved leagues', () => {
     expect(defaultLeague().settings.winningScore).toBe(35);
-    const old = defaultLeague() as League & { settings: { winningScore?: number } };
-    delete old.settings.winningScore;
+    const old = defaultLeague();
+    delete (old.settings as Partial<typeof old.settings>).winningScore;
     expect(migrateLeague(old).settings.winningScore).toBe(35);
   });
 });
