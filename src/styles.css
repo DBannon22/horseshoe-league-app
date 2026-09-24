@@ -1112,3 +1112,23 @@ th {
     order: 3;
   }
 }
+
+.player-grid .pg-side th {
+  padding: 14px 10px 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--midnight);
+  border-bottom: 2px solid var(--midnight);
+  background: var(--surface);
+}
+.player-grid tbody:first-of-type .pg-side th {
+  padding-top: 4px;
+}
+@media (max-width: 760px) {
+  .player-grid .pg-side th {
+    display: block;
+    padding: 14px 0 6px;
+  }
+}

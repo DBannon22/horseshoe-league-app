@@ -99,7 +99,7 @@ export function SchedulePage() {
               <optgroup key={side} label={`${side} side`}>
                 {league.players
                   .filter((p) => p.side === side)
-                  .sort((x, y) => x.slot - y.slot)
+                  .sort((x, y) => x.name.localeCompare(y.name))
                   .map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -320,10 +320,14 @@ function PlayerGrid({ week, onPick }: { week: Week; onPick: (id: string) => void
   const { league, player } = useLeague();
   const rounds = [...new Set(week.games.map((g) => g.round))].sort((x, y) => x - y);
   const singles = week.phase === 'PLAYOFF_SINGLES';
-  const ids = league.players
-    .filter((p) => week.games.some((g) => involves(g, p.id)))
-    .sort((x, y) => x.name.localeCompare(y.name))
-    .map((p) => p.id);
+  // A side first, then B side; alphabetical within each side.
+  const groups = (['A', 'B'] as const).map((side) => ({
+    side,
+    ids: league.players
+      .filter((p) => p.side === side && week.games.some((g) => involves(g, p.id)))
+      .sort((x, y) => x.name.localeCompare(y.name))
+      .map((p) => p.id),
+  }));
 
   const cell = (id: string, round: number) => {
     const g = week.games.find((x) => x.round === round && involves(x, id));
@@ -360,35 +364,40 @@ function PlayerGrid({ week, onPick }: { week: Week; onPick: (id: string) => void
             ))}
           </tr>
         </thead>
-        <tbody>
-          {ids.map((id) => (
-            <tr key={id}>
-              <th className="pg-name">
-                <button className="pg-player" onClick={() => onPick(id)} title="Show this player's whole season">
-                  <Name id={id} />
-                </button>
-              </th>
-              {rounds.map((r) => {
-                const c = cell(id, r);
-                return (
-                  <td key={r} data-label={`${singles ? 'R' : 'G'}${r}`}>
-                    {c ? (
-                      <div className="pcell">
-                        <span className="court-pill">Court {c.court}</span>
-                        <span className="pc-other">
-                          <span className="pc-with">{singles ? 'vs' : 'with'}</span> {player(c.other).name}
-                        </span>
-                        {c.result && <span className={`pc-result ${c.result}`}>{c.result}</span>}
-                      </div>
-                    ) : (
-                      <span className="muted pc-off">Off</span>
-                    )}
-                  </td>
-                );
-              })}
+        {groups.map(({ side, ids }) => (
+          <tbody key={side}>
+            <tr className="pg-side">
+              <th colSpan={rounds.length + 1}>{side} side</th>
             </tr>
-          ))}
-        </tbody>
+            {ids.map((id) => (
+              <tr key={id}>
+                <th className="pg-name">
+                  <button className="pg-player" onClick={() => onPick(id)} title="Show this player's whole season">
+                    <Name id={id} />
+                  </button>
+                </th>
+                {rounds.map((r) => {
+                  const c = cell(id, r);
+                  return (
+                    <td key={r} data-label={`${singles ? 'R' : 'G'}${r}`}>
+                      {c ? (
+                        <div className="pcell">
+                          <span className="court-pill">Court {c.court}</span>
+                          <span className="pc-other">
+                            <span className="pc-with">{singles ? 'vs' : 'with'}</span> {player(c.other).name}
+                          </span>
+                          {c.result && <span className={`pc-result ${c.result}`}>{c.result}</span>}
+                        </div>
+                      ) : (
+                        <span className="muted pc-off">Off</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        ))}
       </table>
     </>
   );
