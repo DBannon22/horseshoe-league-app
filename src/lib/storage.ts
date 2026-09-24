@@ -1,0 +1,51 @@
+import type { League, Player, Side } from './types';
+import { SIDE_SIZE } from './types';
+
+const KEY = 'horseshoe-league:v1';
+
+export function defaultLeague(): League {
+  const players: Player[] = [];
+  for (const side of ['A', 'B'] as Side[])
+    for (let slot = 1; slot <= SIDE_SIZE; slot++)
+      players.push({ id: `${side}${slot}`, name: `${side} Player ${slot}`, side, slot });
+  return {
+    version: 1,
+    players,
+    settings: { leagueName: 'Horseshoe League', gamesPerNight: 4, rankBy: 'points' },
+    schedule: null,
+  };
+}
+
+export function isLeague(x: unknown): x is League {
+  const l = x as League;
+  return (
+    !!l &&
+    l.version === 1 &&
+    Array.isArray(l.players) &&
+    l.players.length === SIDE_SIZE * 2 &&
+    !!l.settings &&
+    typeof l.settings.gamesPerNight === 'number' &&
+    'schedule' in l
+  );
+}
+
+export function loadLeague(): League {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (isLeague(parsed)) return parsed;
+    }
+  } catch {
+    // Storage unavailable or corrupt — start fresh.
+  }
+  return defaultLeague();
+}
+
+export function saveLeague(league: League): void {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(league));
+  } catch {
+    // Ignore quota / privacy-mode failures; export still works.
+  }
+}
