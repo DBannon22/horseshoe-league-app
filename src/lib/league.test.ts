@@ -4,6 +4,7 @@ import { fairnessReport, range } from './fairness';
 import { defaultLeague, migrateLeague } from './storage';
 import { roundRobin } from './roundRobin';
 import { formatPhone, parseSpares, telHref } from './spares';
+import { boldParts, defaultRules, ruleBlocks } from './rules';
 import { doublesStandings, doublesTeams, seedPlayoffs, singlesGroupIds } from './playoffs';
 import { outcome, playerStats, sideStandings } from './standings';
 import { isRegular, type DoublesGame, type League, type Score, type Team } from './types';
@@ -214,5 +215,32 @@ describe('spares', () => {
     const old = defaultLeague();
     delete (old as Partial<League>).spares;
     expect(migrateLeague(old).spares).toEqual([]);
+  });
+});
+
+describe('rules', () => {
+  test('older saved leagues get the printed rules', () => {
+    const old = defaultLeague();
+    delete (old as Partial<League>).rules;
+    const rules = migrateLeague(old).rules;
+    expect(rules.map((s) => s.title)).toEqual(defaultRules().map((s) => s.title));
+    expect(rules[0].rules).toHaveLength(9);
+  });
+
+  test('edited rules are kept and defaults are fresh copies', () => {
+    const league = defaultLeague();
+    league.rules = [{ title: 'House rules', rules: ['Be nice.'] }];
+    expect(migrateLeague(league).rules).toEqual([{ title: 'House rules', rules: ['Be nice.'] }]);
+    defaultRules()[0].rules.push('changed');
+    expect(defaultRules()[0].rules).toHaveLength(9);
+  });
+
+  test('formats bullets and bold text', () => {
+    expect(ruleBlocks('Nights:\n- One\n- Two\n\nAfter')).toEqual([
+      { kind: 'text', text: 'Nights:' },
+      { kind: 'bullets', items: ['One', 'Two'] },
+      { kind: 'text', text: 'After' },
+    ]);
+    expect(boldParts('A **ringer** counts 3')).toEqual(['A ', 'ringer', ' counts 3']);
   });
 });

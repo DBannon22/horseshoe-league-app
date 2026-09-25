@@ -6,6 +6,7 @@ import { StandingsPage } from './pages/StandingsPage';
 import { PlayoffsPage } from './pages/PlayoffsPage';
 import { RosterPage } from './pages/RosterPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { RulesPage } from './pages/RulesPage';
 import { LoginPage } from './pages/LoginPage';
 import { SetupLeague } from './pages/SetupLeague';
 import { AdminOnly } from './components';
@@ -15,6 +16,7 @@ const NAV = [
   { path: 'standings', label: 'Standings' },
   { path: 'playoffs', label: 'Playoffs' },
   { path: 'roster', label: 'Roster' },
+  { path: 'rules', label: 'Rules' },
   { path: 'settings', label: 'Settings', adminOnly: true },
 ];
 
@@ -63,6 +65,9 @@ export default function App() {
         break;
       case 'roster':
         content = <RosterPage />;
+        break;
+      case 'rules':
+        content = <RulesPage />;
         break;
       case 'settings':
         content = canEdit ? <SettingsPage /> : <AdminOnly />;

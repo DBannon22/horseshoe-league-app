@@ -1,5 +1,6 @@
 import type { Game, League, Player, Score, Side } from './types';
 import { DEFAULT_WINNING_SCORE, SIDE_SIZE } from './types';
+import { defaultRules } from './rules';
 
 const KEY = 'horseshoe-league:v1';
 
@@ -19,6 +20,7 @@ export function defaultLeague(): League {
     },
     schedule: null,
     spares: [],
+    rules: defaultRules(),
   };
 }
 
@@ -56,6 +58,8 @@ export function migrateLeague(league: League): League {
   if (typeof league.settings.winningScore !== 'number') league.settings.winningScore = DEFAULT_WINNING_SCORE;
   // Leagues saved before the spares list existed.
   if (!Array.isArray(league.spares)) league.spares = [];
+  // Leagues saved before the rules were editable start from the printed rule sheet.
+  if (!Array.isArray(league.rules)) league.rules = defaultRules();
   return league;
 }
 

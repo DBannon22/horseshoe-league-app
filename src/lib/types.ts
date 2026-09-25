@@ -90,12 +90,20 @@ export interface Spare {
   phone: string;
 }
 
+/** A titled group of numbered league rules, shown on the Rules page. */
+export interface RuleSection {
+  title: string;
+  /** Plain text; `**bold**` and lines starting with “- ” (bullets) are formatted. */
+  rules: string[];
+}
+
 export interface League {
   version: 1;
   players: Player[];
   settings: Settings;
   schedule: Schedule | null;
   spares: Spare[];
+  rules: RuleSection[];
 }
 
 export const PHASE_LABEL: Record<Phase, string> = {

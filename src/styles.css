@@ -1297,3 +1297,97 @@ th {
     grid-column: 1 / -1;
   }
 }
+
+/* ---------- rules ---------- */
+.rules {
+  max-width: 820px;
+  margin: 0 auto;
+}
+.rules-source {
+  margin: -4px 0 16px;
+}
+.rules-list {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+.rules-list > li {
+  padding-left: 4px;
+}
+.rules-list > li + li {
+  margin-top: 10px;
+}
+.rules-list li::marker {
+  color: var(--orange);
+  font-weight: 600;
+}
+.rules-list p {
+  margin: 0;
+}
+.rules-list p + p {
+  margin-top: 6px;
+}
+.rules-sub {
+  margin: 6px 0 0;
+  padding-left: 1.25rem;
+}
+.rules-defs {
+  margin: 8px 0 0;
+}
+.rules-defs dt {
+  font-weight: 600;
+}
+.rules-defs dd {
+  margin: 0 0 8px;
+}
+.rules-help {
+  margin: -4px 0 16px;
+}
+.rules-edit-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.rules-edit-head .field {
+  flex: 1;
+  min-width: min(100%, 240px);
+}
+.rules-edit-head input {
+  font-weight: 600;
+}
+.rules-edit-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rules-edit-list {
+  margin: 0 0 12px;
+  padding-left: 1.5rem;
+}
+.rules-edit-list li::marker {
+  color: var(--orange);
+  font-weight: 600;
+}
+.rules-edit-list li + li {
+  margin-top: 12px;
+}
+.rules-edit-list textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: var(--white);
+  padding: 8px 10px;
+  border: 1px solid #c9c1b7;
+  border-radius: 8px;
+  resize: vertical;
+  margin-bottom: 6px;
+}
+.rules-edit-list textarea:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+.rules .toolbar {
+  justify-content: flex-end;
+  gap: 8px;
+}
