@@ -1391,3 +1391,189 @@ th {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* ---------- history ---------- */
+.history {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.history-help {
+  margin: -4px 0 16px;
+}
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 20px;
+  border-left: 2px solid var(--line);
+}
+.timeline li {
+  position: relative;
+}
+.timeline li + li {
+  margin-top: 16px;
+}
+.timeline li::before {
+  content: '';
+  position: absolute;
+  left: -27px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 2px solid var(--white);
+}
+.timeline-year {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--orange);
+}
+.timeline p {
+  margin: 2px 0 0;
+  white-space: pre-line;
+}
+.champions {
+  width: 100%;
+  border-collapse: collapse;
+}
+.champions th,
+.champions td {
+  text-align: left;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.champions th:first-child,
+.champions td:first-child {
+  padding-left: 0;
+}
+.champions thead th {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.champions tr.year-start td {
+  border-top: 1px solid var(--line);
+}
+.founders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px 16px;
+}
+.founders li {
+  display: flex;
+  flex-direction: column;
+}
+.history-edit {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: grid;
+  gap: 8px;
+}
+.history-edit li {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+}
+.history-edit input,
+.history-edit textarea {
+  min-width: 0;
+}
+.history-edit textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--white);
+  padding: 8px 10px;
+  border: 1px solid #c9c1b7;
+  border-radius: 8px;
+  resize: vertical;
+}
+.history-edit textarea:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+.history-edit .btn {
+  min-height: 40px;
+}
+.timeline-edit {
+  grid-template-columns: 120px 1fr auto;
+}
+.champion-edit {
+  grid-template-columns: 90px 1fr 1fr auto;
+}
+.founder-edit {
+  grid-template-columns: 1fr 1fr auto;
+}
+.president-edit {
+  grid-template-columns: 200px 1fr auto;
+}
+.history-actions {
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .timeline-edit,
+  .champion-edit,
+  .founder-edit,
+  .president-edit {
+    grid-template-columns: 1fr auto;
+  }
+  .timeline-edit textarea,
+  .champion-edit input:nth-child(2),
+  .champion-edit input:nth-child(3),
+  .founder-edit input:nth-child(2),
+  .president-edit input:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .champion-edit input:nth-child(3) {
+    grid-row: 3;
+  }
+}
+.about p {
+  margin: 0;
+  white-space: pre-line;
+}
+.about-label {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.about-edit textarea {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--white);
+  padding: 8px 10px;
+  border: 1px solid #c9c1b7;
+  border-radius: 8px;
+  resize: vertical;
+}
+.about-edit textarea:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+.history-side {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+.history-side > .card {
+  margin-bottom: 0;
+}
+.presidents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.presidents li {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) 1fr;
+  gap: 12px;
+}

@@ -5,6 +5,7 @@ import { defaultLeague, migrateLeague } from './storage';
 import { roundRobin } from './roundRobin';
 import { formatPhone, parseSpares, telHref } from './spares';
 import { boldParts, defaultRules, ruleBlocks } from './rules';
+import { byYear } from './history';
 import { doublesStandings, doublesTeams, seedPlayoffs, singlesGroupIds } from './playoffs';
 import { outcome, playerStats, sideStandings } from './standings';
 import { isRegular, type DoublesGame, type League, type Score, type Team } from './types';
@@ -242,5 +243,29 @@ describe('rules', () => {
       { kind: 'text', text: 'After' },
     ]);
     expect(boldParts('A **ringer** counts 3')).toEqual(['A ', 'ringer', ' counts 3']);
+  });
+});
+
+describe('history', () => {
+  test('older saved leagues get an empty history, and partial ones are filled in', () => {
+    const old = defaultLeague();
+    delete (old as Partial<League>).history;
+    expect(migrateLeague(old).history).toEqual({ about: '', timeline: [], champions: [], founders: [], presidents: [] });
+
+    const partial = defaultLeague();
+    const founders = [{ id: 'f1', name: 'Pat', note: '' }];
+    partial.history = { founders } as League['history'];
+    expect(migrateLeague(partial).history).toEqual({ about: '', timeline: [], champions: [], founders, presidents: [] });
+  });
+
+  test('sorts by year, keeping entry order within a year and undated entries last', () => {
+    const items = [
+      { year: 'Fall 2004', k: 'a' },
+      { year: 'Someday', k: 'b' },
+      { year: '1998', k: 'c' },
+      { year: '2004', k: 'd' },
+    ];
+    expect(byYear(items).map((i) => i.k)).toEqual(['c', 'a', 'd', 'b']);
+    expect(byYear(items, true).map((i) => i.k)).toEqual(['a', 'd', 'c', 'b']);
   });
 });

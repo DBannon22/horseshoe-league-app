@@ -1,6 +1,7 @@
-import type { Game, League, Player, Score, Side } from './types';
+import type { Game, History, League, Player, Score, Side } from './types';
 import { DEFAULT_WINNING_SCORE, SIDE_SIZE } from './types';
 import { defaultRules } from './rules';
+import { emptyHistory } from './history';
 
 const KEY = 'horseshoe-league:v1';
 
@@ -21,6 +22,7 @@ export function defaultLeague(): League {
     schedule: null,
     spares: [],
     rules: defaultRules(),
+    history: emptyHistory(),
   };
 }
 
@@ -60,6 +62,13 @@ export function migrateLeague(league: League): League {
   if (!Array.isArray(league.spares)) league.spares = [];
   // Leagues saved before the rules were editable start from the printed rule sheet.
   if (!Array.isArray(league.rules)) league.rules = defaultRules();
+  // Leagues saved before the history page existed.
+  const history = emptyHistory();
+  const saved: Partial<History> = league.history ?? {};
+  if (typeof saved.about === 'string') history.about = saved.about;
+  for (const key of ['timeline', 'champions', 'founders', 'presidents'] as const)
+    if (Array.isArray(saved[key])) (history[key] as unknown[]) = saved[key];
+  league.history = history;
   return league;
 }
 

@@ -97,6 +97,43 @@ export interface RuleSection {
   rules: string[];
 }
 
+/** A dated moment in the league's story. `year` is free text, e.g. “1998” or “Fall 2004”. */
+export interface TimelineEvent {
+  id: string;
+  year: string;
+  text: string;
+}
+
+export interface Champion {
+  id: string;
+  year: string;
+  award: string;
+  /** One name, or both partners for a doubles title. */
+  winner: string;
+}
+
+export interface FoundingMember {
+  id: string;
+  name: string;
+  note: string;
+}
+
+export interface President {
+  id: string;
+  /** Term, e.g. “1998–2003”; sorted by its first year. */
+  year: string;
+  name: string;
+}
+
+export interface History {
+  /** A short blurb about the league, shown at the top of the History page. */
+  about: string;
+  timeline: TimelineEvent[];
+  champions: Champion[];
+  founders: FoundingMember[];
+  presidents: President[];
+}
+
 export interface League {
   version: 1;
   players: Player[];
@@ -104,6 +141,7 @@ export interface League {
   schedule: Schedule | null;
   spares: Spare[];
   rules: RuleSection[];
+  history: History;
 }
 
 export const PHASE_LABEL: Record<Phase, string> = {
